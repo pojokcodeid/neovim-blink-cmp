@@ -1,0 +1,40 @@
+-- definiskanfunction name
+local keymap = vim.api.nvim_set_keymap
+local opts = { noremap = true, silent = true }
+
+-- Remap space leader keys
+keymap("", "<Space>", "<Nop>", opts)
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
+-- MODES
+-- mormal mode = "n"
+-- insert mode = "i"
+-- visual mode = "v"
+-- visual block mode = "x"
+-- term mode = "t"
+-- command mode = "c"
+
+for _, mode in ipairs({ "i", "v", "n", "x" }) do
+  -- duplicate line
+  keymap(mode, "<S-Down>", "<cmd>t.<cr>", opts)
+  keymap(mode, "<S-Up>", "<cmd>t -1<cr>", opts)
+  keymap(mode, "<S-M-Down>", "<cmd>t.<cr>", opts)
+  keymap(mode, "<S-M-Up>", "<cmd>t -1<cr>", opts)
+  -- save file
+  keymap(mode, "<C-s>", "<cmd>silent! w<cr>", opts)
+end
+
+-- duplicate line visual block
+keymap("x", "<S-Down>", ":'<,'>t'><cr>", opts)
+keymap("x", "<S-M-Down>", ":'<,'>t'><cr>", opts)
+keymap("x", "<S-Up>", ":'<,'>t-1<cr>", opts)
+keymap("x", "<S-M-Up>", ":'<,'>t-1<cr>", opts)
+
+-- move text up and down
+keymap("x", "<A-Down>", ":move '>+1<CR>gv-gv", opts)
+keymap("x", "<A-Up>", ":move '<-2<CR>gv-gv", opts)
+keymap("n", "<M-Down>", "<cmd>m+<cr>", opts)
+keymap("i", "<M-Down>", "<cmd>m+<cr>", opts)
+keymap("n", "<M-Up>", "<cmd>m-2<cr>", opts)
+keymap("i", "<M-Up>", "<cmd>m-2<cr>", opts)
