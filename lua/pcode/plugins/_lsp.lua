@@ -1,5 +1,6 @@
 return {
     "mason-org/mason-lspconfig.nvim",
+    event = { "BufReadPre", "BufNewFile" },
     dependencies = {
         {
           "mason-org/mason.nvim",
@@ -98,6 +99,11 @@ return {
           end,
           capabilities = capabilities,
         }
+        server_name = vim.split(server_name, "@")[1]
+        local require_ok, conf_opts = pcall(require, "pcode.plugins.lsp." .. server_name)
+        if require_ok then
+          option = vim.tbl_deep_extend("force", conf_opts, option)
+        end
         vim.lsp.config(server_name, option)
         vim.lsp.enable(server_name)
       end

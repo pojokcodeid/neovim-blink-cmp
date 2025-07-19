@@ -1,6 +1,6 @@
 return {
   'saghen/blink.cmp',
-  event = "InsertEnter",
+  event = {"InsertEnter","CmdlineEnter"},
   dependencies = {
     "rafamadriz/friendly-snippets",
     "mikavilpas/blink-ripgrep.nvim",
@@ -117,9 +117,5 @@ return {
   opts_extend = {
     "sources.default",
     "sources.providers",
-  },
-  config = function(_, opts)
-    require("blink-cmp").setup(opts)
-    vim.cmd('highlight link BlinkCmpMenuBorder Normal')
-  end
+  }
 }
