@@ -27,9 +27,31 @@ require("lazy").setup({
     -- import your plugins
     { import = "pcode.plugins" },
   },
-  -- Configure any other settings here. See the documentation for more details.
-  -- colorscheme that will be used when installing plugins.
-  install = { colorscheme = { "tokyonight-night" } },
+  ui = {
+    backdrop = 100, -- Menyeting backdrop UI
+    border = "rounded", -- Mengatur border UI ke rounded
+    browser = "chrome", -- Menggunakan Chrome sebagai browser default
+    throttle = 40, -- Menyeting throttle
+    custom_keys = {
+      ["<localleader>l"] = false, -- Menonaktifkan kunci lokal leader l
+    },
+  },
+  change_detection = { enabled = false, notify = false }, -- Nonaktifkan deteksi perubahan
   -- automatically check for plugin updates
   checker = { enabled = true },
+  performance = {
+    rtp = {
+      -- disable some rtp plugins
+      disabled_plugins = {
+        "gzip",
+        "matchit",
+        "matchparen",
+        "netrwPlugin",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "zipPlugin",
+      },
+    },
+  },
 })

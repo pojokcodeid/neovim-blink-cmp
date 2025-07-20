@@ -16,13 +16,13 @@ vim.g.maplocalleader = " "
 -- command mode = "c"
 
 for _, mode in ipairs({ "i", "v", "n", "x" }) do
-  -- duplicate line
-  keymap(mode, "<S-Down>", "<cmd>t.<cr>", opts)
-  keymap(mode, "<S-Up>", "<cmd>t -1<cr>", opts)
-  keymap(mode, "<S-M-Down>", "<cmd>t.<cr>", opts)
-  keymap(mode, "<S-M-Up>", "<cmd>t -1<cr>", opts)
-  -- save file
-  keymap(mode, "<C-s>", "<cmd>silent! w<cr>", opts)
+	-- duplicate line
+	keymap(mode, "<S-Down>", "<cmd>t.<cr>", opts)
+	keymap(mode, "<S-Up>", "<cmd>t -1<cr>", opts)
+	keymap(mode, "<S-M-Down>", "<cmd>t.<cr>", opts)
+	keymap(mode, "<S-M-Up>", "<cmd>t -1<cr>", opts)
+	-- save file
+	keymap(mode, "<C-s>", "<cmd>silent! w<cr>", opts)
 end
 
 -- duplicate line visual block
@@ -38,3 +38,6 @@ keymap("n", "<M-Down>", "<cmd>m+<cr>", opts)
 keymap("i", "<M-Down>", "<cmd>m+<cr>", opts)
 keymap("n", "<M-Up>", "<cmd>m-2<cr>", opts)
 keymap("i", "<M-Up>", "<cmd>m-2<cr>", opts)
+
+-- windows
+keymap("n", "q", "<cmd>q<cr>", opts)

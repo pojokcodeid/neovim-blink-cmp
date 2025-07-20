@@ -3,7 +3,6 @@ local api = vim.api
 -- Pengaturan umum
 api.nvim_create_augroup("_general_settings", { clear = true })
 
-
 api.nvim_create_autocmd("FileType", {
 	group = "_general_settings",
 	pattern = "qf",
@@ -80,3 +79,9 @@ vim.opt.guicursor = {
 	"a:blinkwait700-blinkoff400-blinkon250", -- Blinking settings
 	"sm:block-blinkwait175-blinkoff150-blinkon175", -- Select mode: block cursor with blinking
 }
+
+vim.api.nvim_create_autocmd("ExitPre", {
+	group = vim.api.nvim_create_augroup("Exit", { clear = true }),
+	command = "set guicursor=n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50,a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,sm:block-blinkwait175-blinkoff150-blinkon175,a:ver90",
+	desc = "Set cursor back to beam when leaving Neovim.",
+})

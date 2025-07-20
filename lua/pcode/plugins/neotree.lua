@@ -1,127 +1,126 @@
 local git_available = vim.fn.executable("git") == 1
 
 return {
-  "nvim-neo-tree/neo-tree.nvim",
-  branch = "v3.x",
-  dependencies = {
-    "nvim-lua/plenary.nvim",
-    {
-      "nvim-tree/nvim-web-devicons",
-      event = "VeryLazy",
-      dependencies = {
-        "pojokcodeid/nvim-material-icon",
-      },
-      config = function()
-        require("nvim-web-devicons").setup({
-          override = require("nvim-material-icon").get_icons()
-        })
-      end,
-    },
-    "MunifTanjim/nui.nvim",
-  },
+	"nvim-neo-tree/neo-tree.nvim",
+	branch = "v3.x",
+	event = { "BufRead", "BufNewFile" },
+	cmd = "Neotree",
+	dependencies = {
+		"nvim-lua/plenary.nvim",
+		"MunifTanjim/nui.nvim",
+	},
 
-  deactivate = function()
-    vim.cmd([[Neotree close]])
-  end,
+	deactivate = function()
+		vim.cmd([[Neotree close]])
+	end,
 
-  init = function()
-    vim.api.nvim_create_autocmd("BufEnter", {
-      group = vim.api.nvim_create_augroup("Neotree_start_directory", { clear = true }),
-      desc = "Start Neo-tree with directory",
-      once = true,
-      callback = function()
-        if not package.loaded["neo-tree"] then
-          local stats = vim.uv.fs_stat(vim.fn.argv(0))
-          if stats and stats.type == "directory" then
-            require("neo-tree")
-          end
-        end
-      end,
-    })
-  end,
+	keys = {
+		{
+			"<leader>e",
+			"<CMD>Neotree toggle<CR>",
+			desc = "Explorer",
+		},
+	},
 
-  opts = {
-    enable_git_status = git_available,
-    auto_clean_after_session_restore = true,
-    close_if_last_window = true,
+	init = function()
+		vim.api.nvim_create_autocmd("BufEnter", {
+			group = vim.api.nvim_create_augroup("Neotree_start_directory", { clear = true }),
+			desc = "Start Neo-tree with directory",
+			once = true,
+			callback = function()
+				if not package.loaded["neo-tree"] then
+					local stats = vim.uv.fs_stat(vim.fn.argv(0))
+					if stats and stats.type == "directory" then
+						require("neo-tree")
+					end
+				end
+			end,
+		})
+	end,
 
-    sources = vim.tbl_filter(function(src) return src ~= nil end, {
-      "filesystem",
-      "buffers",
-      git_available and "git_status" or nil,
-    }),
+	opts = {
+		enable_git_status = git_available,
+		auto_clean_after_session_restore = true,
+		close_if_last_window = true,
 
-    source_selector = {
-      winbar = true,
-      content_layout = "center",
-      sources = {
-        { source = "filesystem", display_name = " 󰉓 Files " },
-        { source = "buffers", display_name = "  Buffers " },
-        { source = "git_status", display_name = "  Git " },
-      },
-    },
+		sources = vim.tbl_filter(function(src)
+			return src ~= nil
+		end, {
+			"filesystem",
+			"buffers",
+			git_available and "git_status" or nil,
+		}),
 
-    window = {
-      position = "left",
-      width = 35,
-    },
+		source_selector = {
+			winbar = true,
+			content_layout = "center",
+			sources = {
+				{ source = "filesystem", display_name = " 󰉓 Files " },
+				{ source = "buffers", display_name = "  Buffers " },
+				{ source = "git_status", display_name = "  Git " },
+			},
+		},
 
-    default_component_configs = {
-      icon = {
-        folder_closed = "󰉋",
-        folder_open = "󰝰",
-        folder_empty = "󰉖",
-      },
-    },
+		window = {
+			position = "left",
+			width = 35,
+		},
 
-    filesystem = {
-      filtered_items = {
-        visible = false,
-        hide_dotfiles = false,
-        hide_gitignored = false,
-        hide_hidden = true,
-        hide_by_name = {
-          ".git",
-          "node_modules",
-        },
-      },
-    },
+		default_component_configs = {
+			icon = {
+				folder_closed = "󰉋",
+				folder_open = "󰝰",
+				folder_empty = "󰉖",
+			},
+		},
 
-    buffers = {
-      follow_current_file = {
-        enabled = true,
-        leave_dirs_open = false,
-      },
-      group_empty_dirs = true,
-      show_unloaded = true,
-    },
+		filesystem = {
+			filtered_items = {
+				visible = false,
+				hide_dotfiles = false,
+				hide_gitignored = false,
+				hide_hidden = true,
+				hide_by_name = {
+					".git",
+					"node_modules",
+				},
+			},
+		},
 
-    git_status = {
-      symbols = {
-        unstaged = "󰄱",
-        staged = "󰱒",
-      },
-    },
-  },
+		buffers = {
+			follow_current_file = {
+				enabled = true,
+				leave_dirs_open = false,
+			},
+			group_empty_dirs = true,
+			show_unloaded = true,
+		},
 
-  config = function(_, opts)
-    require("neo-tree").setup(opts)
+		git_status = {
+			symbols = {
+				unstaged = "󰄱",
+				staged = "󰱒",
+			},
+		},
+	},
 
-    vim.api.nvim_create_autocmd("TermClose", {
-      pattern = "*lazygit*",
-      callback = function()
-        if package.loaded["neo-tree.sources.git_status"] then
-          require("neo-tree.sources.git_status").refresh()
-        end
-      end,
-    })
+	config = function(_, opts)
+		require("neo-tree").setup(opts)
 
-    -- vim.cmd [[
-    --   highlight NeoTreeTabActive   guifg=#ffffff guibg=#5f87af
-    --   highlight NeoTreeTabInactive guifg=#aaaaaa guibg=NONE
-    --   highlight NeoTreeTabSeparatorActive guifg=#5f87af guibg=NONE
-    --   highlight NeoTreeTabSeparatorInactive guifg=#3a3a3a guibg=NONE
-    -- ]]
+		vim.api.nvim_create_autocmd("TermClose", {
+			pattern = "*lazygit*",
+			callback = function()
+				if package.loaded["neo-tree.sources.git_status"] then
+					require("neo-tree.sources.git_status").refresh()
+				end
+			end,
+		})
 
-  end,
+		-- vim.cmd [[
+		--   highlight NeoTreeTabActive   guifg=#ffffff guibg=#5f87af
+		--   highlight NeoTreeTabInactive guifg=#aaaaaa guibg=NONE
+		--   highlight NeoTreeTabSeparatorActive guifg=#5f87af guibg=NONE
+		--   highlight NeoTreeTabSeparatorInactive guifg=#3a3a3a guibg=NONE
+		-- ]]
+	end,
 }
