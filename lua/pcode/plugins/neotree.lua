@@ -72,6 +72,20 @@ return {
 				folder_open = "󰝰",
 				folder_empty = "󰉖",
 			},
+			git_status = {
+				symbols = {
+					unstaged = "󰄱",
+					staged = "󰱒",
+					added = "", -- or "✚", but this is redundant info if you use git_status_colors on the name
+					modified = "", -- or "", but this is redundant info if you use git_status_colors on the name
+					deleted = "", -- this can only be used in the git_status source
+					renamed = "󰁕", -- this can only be used in the git_status source
+					-- Status type
+					untracked = "",
+					ignored = "",
+					conflict = "",
+				},
+			},
 		},
 
 		filesystem = {
@@ -94,13 +108,6 @@ return {
 			},
 			group_empty_dirs = true,
 			show_unloaded = true,
-		},
-
-		git_status = {
-			symbols = {
-				unstaged = "󰄱",
-				staged = "󰱒",
-			},
 		},
 	},
 
