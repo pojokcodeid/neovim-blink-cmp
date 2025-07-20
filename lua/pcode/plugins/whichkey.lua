@@ -49,7 +49,7 @@ return {
 				filetypes = { "TelescopePrompt" },
 			},
 			---@type false | "classic" | "modern" | "helix"
-			preset = "helix",
+			preset = "modern",
 			mappings = {
 				{ "<leader>S", "", desc = "Lazy", mode = "n" },
 				{ "<leader>Si", "<cmd>Lazy install<cr>", desc = "Install", mode = "n" },

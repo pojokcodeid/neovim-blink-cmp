@@ -85,3 +85,27 @@ vim.api.nvim_create_autocmd("ExitPre", {
 	command = "set guicursor=n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50,a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,sm:block-blinkwait175-blinkoff150-blinkon175,a:ver90",
 	desc = "Set cursor back to beam when leaving Neovim.",
 })
+
+vim.api.nvim_create_user_command("TSIsInstalled", function()
+	local parsers = require("nvim-treesitter.info").installed_parsers()
+	table.sort(parsers)
+	local choices = {}
+	local lookup = {}
+
+	for _, parser in ipairs(parsers) do
+		local label = "[✓] " .. parser
+		table.insert(choices, label)
+		lookup[label] = parser
+	end
+
+	vim.ui.select(choices, {
+		prompt = "Uninstall Treesitter",
+	}, function(choice)
+		if choice then
+			local parser_name = lookup[choice]
+			if parser_name then
+				vim.cmd("TSUninstall " .. parser_name)
+			end
+		end
+	end)
+end, {})
