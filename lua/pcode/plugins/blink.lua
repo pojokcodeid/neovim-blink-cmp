@@ -11,17 +11,51 @@ return {
 	opts = {
 		snippets = { preset = "luasnip" },
 		keymap = {
-			preset = "default",
+			preset = "none",
+			["<C-space>"] = { "show" },
+			["<Tab>"] = {
+				function(cmp)
+					if cmp.snippet_active() then
+						return cmp.accept()
+					else
+						local has_words_before = function()
+							local col = vim.api.nvim_win_get_cursor(0)[2]
+							if col == 0 then
+								return false
+							end
+							local line = vim.api.nvim_get_current_line()
+							return line:sub(col, col):match("%s") == nil
+						end
+
+						return cmp.select_next({ auto_insert = has_words_before() })
+					end
+				end,
+				"snippet_forward",
+				"fallback",
+			},
+			["<S-Tab>"] = {
+				function(cmp)
+					if cmp.snippet_active() then
+						return cmp.snippet_backward()
+					else
+						return cmp.select_prev()
+					end
+				end,
+				"fallback",
+			},
+			["<CR>"] = { "accept", "fallback" },
+			["<C-u>"] = {
+				"scroll_documentation_up",
+				"fallback",
+			},
+			["<C-d>"] = {
+				"scroll_documentation_down",
+				"fallback",
+			},
 			["<Up>"] = { "select_prev", "fallback" },
 			["<Down>"] = { "select_next", "fallback" },
-			["<C-e>"] = false,
-			["<Tab>"] = { "select_next", "fallback" },
-			["<S-Tab>"] = { "select_prev", "fallback" },
-			["<C-space>"] = {
-				function(cmp)
-					cmp.show({ providers = { "lsp", "path", "snippets", "buffer", "ripgrep" } })
-				end,
-			},
+			["<C-p>"] = { "select_prev", "fallback_to_mappings" },
+			["<C-n>"] = { "select_next", "fallback_to_mappings" },
 		},
 		appearance = {
 			use_nvim_cmp_as_default = true,
@@ -69,6 +103,7 @@ return {
 			},
 		},
 		completion = {
+			accept = { auto_brackets = { enabled = true } },
 			menu = {
 				border = "rounded",
 				draw = {
