@@ -75,7 +75,15 @@ return {
 		})
 		-- register lsp
 		for _, server_name in ipairs(installed_servers) do
-			local capabilities = require("blink.cmp").get_lsp_capabilities(vim.lsp.protocol.make_client_capabilities())
+			local capabilities = {
+				textDocument = {
+					foldingRange = {
+						dynamicRegistration = false,
+						lineFoldingOnly = true,
+					},
+				},
+			}
+			capabilities = require("blink.cmp").get_lsp_capabilities(capabilities)
 			option = {
 				on_attach = function(client, bufnr)
 					local map = function(keys, func, desc, mode)
