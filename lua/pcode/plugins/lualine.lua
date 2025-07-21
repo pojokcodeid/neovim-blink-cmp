@@ -28,14 +28,14 @@ return {
 			-- parallelogram
 			-- transparent
 			-- default
-			local options = "roundedall"
+			local options = "square"
 			-- 0 = on full text mode info,
 			-- 1 = on initial mode + logo
 			-- 2 = logo only
 			-- 3 = initial only
 			-- 4 = off
 			-- 5 = icon
-			local show_mode = 5
+			local show_mode = 3
 			lualine.setup({
 				setColor = color,
 				setOption = options,
