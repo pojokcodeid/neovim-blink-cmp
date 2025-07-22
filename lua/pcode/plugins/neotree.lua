@@ -39,6 +39,7 @@ return {
 	end,
 
 	opts = {
+		popup_border_style = "rounded",
 		enable_git_status = git_available,
 		auto_clean_after_session_restore = true,
 		close_if_last_window = true,
