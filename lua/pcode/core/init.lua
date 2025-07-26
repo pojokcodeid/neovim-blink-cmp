@@ -1,1 +1,1 @@
-require("pcode.config.lazy")
+require("pcode.config.lazy_config")
