@@ -6,6 +6,26 @@ return {
 		"mikavilpas/blink-ripgrep.nvim",
 		"xzbdmw/colorful-menu.nvim",
 		{ "L3MON4D3/LuaSnip", version = "v2.*" },
+		{
+			"Exafunction/codeium.nvim",
+			cmd = "Codeium",
+			build = ":Codeium Auth",
+			opts = {
+				enable_chat = true,
+				enable_cmp_source = true,
+				virtual_text = {
+					enabled = false,
+					key_bindings = {
+						accept = "<c-g>",
+						next = "<c-Down>",
+						prev = "<c-Up>",
+					},
+				},
+			},
+			config = function(_, opts)
+				require("codeium").setup(opts)
+			end,
+		},
 	},
 	version = "1.*",
 	opts = {
@@ -133,7 +153,7 @@ return {
 			completion = { menu = { auto_show = true } },
 		},
 		sources = {
-			default = { "lsp", "path", "snippets", "buffer", "ripgrep" },
+			default = { "lsp", "path", "snippets", "buffer", "ripgrep", "codeium" },
 			providers = {
 				ripgrep = {
 					module = "blink-ripgrep",
@@ -145,6 +165,7 @@ return {
 						additional_rg_options = {},
 					},
 				},
+				codeium = { name = "Codeium", module = "codeium.blink", async = true },
 			},
 		},
 		fuzzy = { implementation = "prefer_rust_with_warning" },
