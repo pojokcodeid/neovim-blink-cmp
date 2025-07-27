@@ -28,6 +28,7 @@ return {
 		},
 	},
 	version = "1.*",
+	build = "cargo build --release",
 	opts = {
 		snippets = { preset = "luasnip" },
 		keymap = {
