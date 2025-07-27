@@ -127,8 +127,24 @@ return {
 			accept = { auto_brackets = { enabled = true } },
 			menu = {
 				border = "rounded",
-				draw = {
+				--[[ 	draw = {
 					columns = { { "kind_icon" }, { "label", gap = 0 } },
+					components = {
+						label = {
+							text = require("colorful-menu").blink_components_text,
+							highlight = require("colorful-menu").blink_components_highlight,
+						},
+					},
+				}, ]]
+				draw = {
+					padding = 2,
+					gap = 1,
+					treesitter = { "lsp" },
+					columns = {
+						{ "kind_icon" },
+						{ "label", "label_description", gap = 1 },
+						{ "kind" },
+					},
 					components = {
 						label = {
 							text = require("colorful-menu").blink_components_text,
@@ -143,6 +159,9 @@ return {
 				window = {
 					border = "rounded",
 				},
+			},
+			ghost_text = {
+				enabled = true,
 			},
 		},
 		signature = {
@@ -161,10 +180,20 @@ return {
 					name = "Ripgrep",
 					opts = {
 						prefix_min_len = 3,
-						context_size = 5,
-						max_filesize = "1M",
-						additional_rg_options = {},
+						backend = {
+							context_size = 5,
+							ripgrep = {
+								max_filesize = "1M",
+								additional_rg_options = {},
+							},
+						},
 					},
+					transform_items = function(_, items)
+						for _, item in ipairs(items) do
+							item.kind_name = "Ripgrep"
+						end
+						return items
+					end,
 				},
 				codeium = { name = "Codeium", module = "codeium.blink", async = true },
 			},
