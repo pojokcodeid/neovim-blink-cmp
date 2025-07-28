@@ -1,5 +1,9 @@
 # neovim-config
 
+## Preview
+
+![preview!](img/preview.png)
+
 ## Kebutuhan dasar
 
 - [C++](https://www.msys2.org/)

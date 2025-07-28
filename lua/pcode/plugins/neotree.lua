@@ -100,6 +100,9 @@ return {
 					"node_modules",
 				},
 			},
+			follow_current_file = {
+				enabled = true,
+			},
 		},
 
 		buffers = {
