@@ -1,6 +1,4 @@
 return {
-	{ "mikavilpas/blink-ripgrep.nvim", event = "VeryLazy" },
-	{ "xzbdmw/colorful-menu.nvim", event = "VeryLazy" },
 	{
 		"mason-org/mason-lspconfig.nvim",
 		event = { "BufReadPre", "BufNewFile" },

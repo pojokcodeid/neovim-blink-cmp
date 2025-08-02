@@ -22,6 +22,7 @@ return {
 				NeoTreeTabSeparatorActive = { fg = "#6776a7", bg = colors.bg },
 				NeoTreeTabSeparatorInactive = { fg = "#6776a7", bg = colors.bg },
 				NeoTreeTabActive = { fg = colors.fg, bg = colors.selection },
+				BlinkCmpGhostText = { link = "Comment" },
 			},
 			transparent_bg = false,
 		}
