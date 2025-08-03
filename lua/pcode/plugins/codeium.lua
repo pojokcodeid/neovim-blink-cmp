@@ -7,9 +7,9 @@ return {
 			build = ":Codeium Auth",
 			opts = {
 				enable_chat = true,
-				enable_cmp_source = true,
+				enable_cmp_source = false, -- true jika menggunkan nvim-cmp
 				virtual_text = {
-					enabled = false,
+					enabled = false, -- true jika ingin mengactivekan virtual text sugetion
 					key_bindings = {
 						accept = "<c-g>",
 						next = "<c-Down>",

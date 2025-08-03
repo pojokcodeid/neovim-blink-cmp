@@ -31,12 +31,13 @@ return {
 			},
 			components = {
 				{
+					text = "｜",
+					fg = hl_attr("Comment", "fg"),
+					bg = hl_attr("Normal", "bg"),
+				},
+				{
 					text = function(buffer)
-						if buffer.is_focused then
-							return "▎" .. buffer.devicon.icon
-						else
-							return "｜" .. buffer.devicon.icon
-						end
+						return " " .. buffer.devicon.icon
 					end,
 					fg = function(buffer)
 						return buffer.devicon.color
