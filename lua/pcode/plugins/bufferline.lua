@@ -2,7 +2,7 @@ return {
 	"willothy/nvim-cokeline",
 	event = { "BufRead", "BufNewFile" },
 	opts = function()
-		function truncate_text(text, max_length)
+		local truncate_text = function(text, max_length)
 			if #text > max_length then
 				return text:sub(1, max_length) .. "..."
 			else
