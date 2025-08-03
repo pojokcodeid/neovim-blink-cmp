@@ -2,6 +2,14 @@ return {
 	"willothy/nvim-cokeline",
 	event = { "BufRead", "BufNewFile" },
 	opts = function()
+		function truncate_text(text, max_length)
+			if #text > max_length then
+				return text:sub(1, max_length) .. "..."
+			else
+				return text
+			end
+		end
+
 		local yellow = vim.g.terminal_color_3
 		local hlgroups = require("cokeline.hlgroups")
 		local hl_attr = hlgroups.get_hl_attr
@@ -48,7 +56,7 @@ return {
 				},
 				{
 					text = function(buffer)
-						return buffer.filename .. " "
+						return truncate_text(buffer.filename, 12) .. " "
 					end,
 					style = function(buffer)
 						return buffer.is_focused and "bold" or nil
