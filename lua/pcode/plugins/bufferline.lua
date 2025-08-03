@@ -73,6 +73,35 @@ return {
 		}
 	end,
 	keys = {
+		{ "<leader>b", "", desc = "Buffers", mode = "n" },
+		{
+			"<Leader>bp",
+			"<Plug>(cokeline-switch-prev)",
+			desc = "Focus Previous buffer",
+			mode = "n",
+		},
+		{
+			"<Leader>bn",
+			"<Plug>(cokeline-switch-next)",
+			desc = "Focus next buffer",
+			mode = "n",
+		},
+		{
+			"<leader>bb",
+			function()
+				require("telescope.builtin").buffers(require("telescope.themes").get_dropdown({ previewer = false }))
+			end,
+			desc = "All Buffer",
+			mode = "n",
+		},
+		{
+			"<leader>bc",
+			function()
+				require("pcode.user.buffer").bufremove()
+			end,
+			desc = "Close current buffer",
+			mode = "n",
+		},
 		{
 			"<S-Tab>",
 			"<Plug>(cokeline-focus-prev)",
@@ -83,18 +112,6 @@ return {
 			"<Tab>",
 			"<Plug>(cokeline-focus-next)",
 			desc = "Focus buffer Next",
-			mode = "n",
-		},
-		{
-			"<Leader>p",
-			"<Plug>(cokeline-switch-prev)",
-			desc = "Focus Previous buffer",
-			mode = "n",
-		},
-		{
-			"<Leader>n",
-			"<Plug>(cokeline-switch-next)",
-			desc = "Focus next buffer",
 			mode = "n",
 		},
 		{
