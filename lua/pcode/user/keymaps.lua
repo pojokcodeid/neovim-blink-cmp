@@ -108,10 +108,6 @@ keymap("n", "<S-Left>", "<Esc>:bnext<CR>", opts)
 keymap("n", "<S-h>", ":bprevious<CR>", opts)
 keymap("n", "<S-Right>", "<Esc>:bprevious<CR>", opts)
 
--- Reordering Bufferline
-keymap("n", "<S-PageUp>", "<cmd>BufferLineMovePrev<cr>", opts)
-keymap("n", "<S-PageDown>", "<cmd>BufferLineMoveNext<cr>", opts)
-
 -- Press jk fast to exit insert mode
 keymap("i", "jk", "<ESC>", opts)
 keymap("i", "kj", "<ESC>", opts)
@@ -122,6 +118,3 @@ keymap("v", ">", ">gv", opts)
 
 -- ALT + l to open terminal and run live-server
 keymap("n", "<A-l>", "<cmd>terminal live-server<cr>", opts)
-
--- close current buffer
-keymap("n", "<S-t>", "<cmd>lua require('auto-bufferline.configs.utils').bufremove()<cr>", opts)

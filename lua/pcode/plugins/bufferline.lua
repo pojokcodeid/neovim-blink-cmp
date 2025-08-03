@@ -63,4 +63,50 @@ return {
 			},
 		}
 	end,
+	keys = {
+		{
+			"<S-Tab>",
+			"<Plug>(cokeline-focus-prev)",
+			desc = "Focus previous buffer",
+			mode = "n",
+		},
+		{
+			"<Tab>",
+			"<Plug>(cokeline-focus-next)",
+			desc = "Focus buffer Next",
+			mode = "n",
+		},
+		{
+			"<Leader>p",
+			"<Plug>(cokeline-switch-prev)",
+			desc = "Focus Previous buffer",
+			mode = "n",
+		},
+		{
+			"<Leader>n",
+			"<Plug>(cokeline-switch-next)",
+			desc = "Focus next buffer",
+			mode = "n",
+		},
+		{
+			"<S-PageUp>",
+			"<Plug>(cokeline-switch-prev)",
+			desc = "Switch to previous buffer",
+			mode = "n",
+		},
+		{
+			"<S-PageDown>",
+			"<Plug>(cokeline-switch-next)",
+			desc = "Switch to next buffer",
+			mode = "n",
+		},
+		{
+			"<S-t>",
+			function()
+				require("pcode.user.buffer").bufremove()
+			end,
+			desc = "Close Current Buffer",
+			mode = "n",
+		},
+	},
 }
