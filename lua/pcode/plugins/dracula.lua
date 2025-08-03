@@ -23,6 +23,11 @@ return {
 				NeoTreeTabSeparatorInactive = { fg = "#6776a7", bg = colors.bg },
 				NeoTreeTabActive = { link = "ColorColumn" },
 				BlinkCmpGhostText = { link = "Comment" },
+				illuminatedWord = { bg = "#3b4261" },
+				illuminatedCurWord = { bg = "#3b4261" },
+				IlluminatedWordText = { bg = "#3b4261" },
+				IlluminatedWordRead = { bg = "#3b4261" },
+				IlluminatedWordWrite = { bg = "#3b4261" },
 			},
 			transparent_bg = false,
 		}
