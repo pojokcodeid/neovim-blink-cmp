@@ -6,7 +6,7 @@ return {
 		{ "L3MON4D3/LuaSnip", version = "v2.*" },
 	},
 	version = "1.*",
-	build = "cargo build --release",
+	-- build = "cargo build --release",
 	opts = function()
 		return {
 			snippets = { preset = "luasnip" },
