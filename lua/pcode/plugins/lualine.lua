@@ -6,7 +6,7 @@ return {
 		opts = {
 			-- for more options check out https://github.com/pojokcodeid/auto-lualine.nvim
 			setColor = "auto",
-			setOption = "square",
+			setOption = "roundedall",
 			setMode = 5,
 		},
 	},

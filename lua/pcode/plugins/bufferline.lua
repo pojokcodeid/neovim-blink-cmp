@@ -19,7 +19,11 @@ return {
 				components = {
 					{
 						text = function(buf)
-							return buf.filetype
+							if buf.filetype == "neo-tree" then
+								return "Explorer"
+							else
+								return buf.filetype
+							end
 						end,
 						fg = yellow,
 						bg = function()
