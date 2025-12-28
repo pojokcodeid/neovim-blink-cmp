@@ -44,7 +44,6 @@ return {
 					"fallback",
 				},
 				["<CR>"] = { "accept", "fallback" },
-				["<space>"] = { "accept", "fallback" },
 				["<C-u>"] = {
 					"scroll_documentation_up",
 					"fallback",
@@ -113,6 +112,11 @@ return {
 			completion = {
 				accept = { auto_brackets = { enabled = true } },
 				menu = {
+					-- min_width = 15,
+					-- max_height = 10,
+					-- n → north (atas)
+					-- s → south (bawah)
+					direction_priority = { "s", "n" },
 					border = "rounded",
 					winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder,CursorLine:CursorLine,Search:None",
 					draw = {
@@ -132,11 +136,19 @@ return {
 					window = {
 						border = "rounded",
 						winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder,CursorLine:CursorLine,Search:None",
+						-- max_width = 50,
+						-- e → east (kanan kursor)
+						-- w → west (kiri kursor)
+						-- n → north (atas)
+						-- s → south (bawah)
+						direction_priority = {
+							menu_north = { "e", "w" },
+							menu_south = { "e", "w" },
+						},
 					},
 				},
 				ghost_text = {
 					enabled = true,
-					hl_group = "Comment",
 				},
 			},
 			signature = {
