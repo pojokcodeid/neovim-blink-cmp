@@ -39,6 +39,8 @@ return {
 	end,
 
 	opts = {
+		-- hide_root_node = true,
+		-- add_blank_line_at_top = true,
 		popup_border_style = "rounded",
 		enable_git_status = git_available,
 		auto_clean_after_session_restore = true,
@@ -51,6 +53,16 @@ return {
 			"buffers",
 			git_available and "git_status" or nil,
 		}),
+
+		event_handlers = {
+			{
+				event = "file_added",
+				handler = function(file_path)
+					-- Auto-open the file once it is created
+					vim.cmd("edit " .. vim.fn.fnameescape(file_path))
+				end,
+			},
+		},
 
 		source_selector = {
 			winbar = true,
@@ -90,6 +102,20 @@ return {
 		},
 
 		filesystem = {
+			-- ini untuk mendapatkan folder terakhir saja
+			--[[ components = {
+				name = function(config, node, state)
+					local components = require("neo-tree.sources.common.components")
+					local render = components.name(config, node, state)
+
+					-- Jika ini adalah node root (depth 0 atau 1 tergantung versi)
+					if node:get_depth() <= 1 then
+						-- Ambil hanya nama folder terakhir saja
+						render.text = vim.fn.fnamemodify(node.path, ":t")
+					end
+					return render
+				end,
+			}, ]]
 			filtered_items = {
 				visible = false,
 				hide_dotfiles = false,
