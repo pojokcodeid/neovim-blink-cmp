@@ -44,6 +44,7 @@ return {
 					"fallback",
 				},
 				["<CR>"] = { "accept", "fallback" },
+				["<space>"] = { "accept", "fallback" },
 				["<C-u>"] = {
 					"scroll_documentation_up",
 					"fallback",
