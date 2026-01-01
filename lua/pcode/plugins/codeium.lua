@@ -1,4 +1,4 @@
-return {
+--[[ return {
 	"saghen/blink.cmp",
 	dependencies = {
 		{
@@ -26,4 +26,6 @@ return {
 		table.insert(opts.sources.default, 1, "codeium")
 		opts.sources.providers.codeium = { name = "Codeium", module = "codeium.blink", async = true }
 	end,
-}
+} ]]
+
+return {}

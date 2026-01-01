@@ -9,50 +9,7 @@ local M = {
 }
 
 function M.config()
-	local icons = {
-		Boolean = "󰨙",
-		Color = "",
-		Codeium = "󰘦",
-		Control = "",
-		Collapsed = " ",
-		Component = "󰅴",
-		Copilot = "",
-		CopilotOff = "",
-		Folder = "󰉋",
-		Keyword = "",
-		Reference = "",
-		Snippet = "",
-		TabNine = "󰏚",
-		Text = "",
-		Unit = "",
-		Value = "",
-		File = "",
-		Module = "",
-		Namespace = "",
-		Package = "",
-		Class = "",
-		Method = "",
-		Property = "",
-		Field = "",
-		Constructor = "",
-		Enum = "",
-		Interface = "",
-		Function = "",
-		Fragment = "󰅴",
-		Variable = "",
-		Constant = "",
-		String = "",
-		Number = "",
-		Array = "",
-		Object = "",
-		Key = "",
-		Null = "",
-		EnumMember = "",
-		Struct = "",
-		Event = "",
-		Operator = "",
-		TypeParameter = "",
-	}
+	local icons = require("pcode.user.icons").kind
 	for key, value in pairs(icons) do
 		icons[key] = value .. " "
 	end

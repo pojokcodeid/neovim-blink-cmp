@@ -22,7 +22,7 @@ return {
 							if buf.filetype == "neo-tree" then
 								return "Explorer"
 							else
-								return buf.filetype
+								return vim.fn.fnamemodify(vim.fn.getcwd(), ":t") or "Explorer"
 							end
 						end,
 						fg = yellow,
