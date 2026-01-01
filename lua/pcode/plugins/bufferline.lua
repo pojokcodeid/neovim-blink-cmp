@@ -41,7 +41,7 @@ return {
 					return buffer.is_focused and hl_attr("ColorColumn", "bg") or hl_attr("Normal", "bg")
 				end,
 			},
-			components = {
+			--[[ 			components = {
 				{
 					text = "｜",
 					fg = hl_attr("Comment", "fg"),
@@ -72,6 +72,57 @@ return {
 				{
 					text = "󰅖 ",
 					delete_buffer_on_left_click = true,
+				},
+			}, ]]
+			components = {
+				{
+					text = " ",
+					bg = hl_attr("Normal", "bg"),
+				},
+				{
+					text = "",
+					fg = function(buffer)
+						if buffer.is_focused then
+							return hl_attr("ColorColumn", "bg")
+						else
+							return hl_attr("Normal", "bg")
+						end
+					end,
+					bg = hl_attr("Normal", "bg"),
+				},
+				{
+					text = function(buffer)
+						return buffer.devicon.icon
+					end,
+					fg = function(buffer)
+						return buffer.devicon.color
+					end,
+				},
+				{
+					text = " ",
+				},
+				{
+					text = function(buffer)
+						return truncate_text(buffer.filename, 12) .. " "
+					end,
+					style = function(buffer)
+						return buffer.is_focused and "bold" or nil
+					end,
+				},
+				{
+					text = "󰅖",
+					delete_buffer_on_left_click = true,
+				},
+				{
+					text = "",
+					fg = function(buffer)
+						if buffer.is_focused then
+							return hl_attr("ColorColumn", "bg")
+						else
+							return hl_attr("Normal", "bg")
+						end
+					end,
+					bg = hl_attr("Normal", "bg"),
 				},
 			},
 		}
