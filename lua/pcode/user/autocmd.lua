@@ -109,3 +109,90 @@ vim.api.nvim_create_user_command("TSIsInstalled", function()
 		end
 	end)
 end, {})
+
+-- custom user command
+local editor = require("pcode.core.default_editor")
+local registry = require("pcode.core.theme_registry")
+
+vim.api.nvim_create_user_command("ActivateRest", function()
+	if editor.set_table_value("pcode.extras", "rest", true) then
+		vim.notify("REST diaktifkan", vim.log.levels.INFO)
+	else
+		vim.notify("REST sudah aktif / tidak ditemukan", vim.log.levels.WARN)
+	end
+end, {})
+
+vim.api.nvim_create_user_command("DeactivateRest", function()
+	if editor.set_table_value("pcode.extras", "rest", false) then
+		vim.notify("REST dimatikan", vim.log.levels.INFO)
+	else
+		vim.notify("REST sudah mati / tidak ditemukan", vim.log.levels.WARN)
+	end
+end, {})
+
+vim.api.nvim_create_user_command("ToggleRest", function()
+	local state = editor.toggle_table_value("pcode.extras", "rest")
+
+	if state == true then
+		vim.notify("REST activated", vim.log.levels.INFO, {
+			title = "pcode.extras",
+		})
+	elseif state == false then
+		vim.notify("REST deactivated", vim.log.levels.WARN, {
+			title = "pcode.extras",
+		})
+	else
+		vim.notify("Key 'rest' tidak ditemukan", vim.log.levels.ERROR, {
+			title = "pcode.extras",
+		})
+	end
+end, {})
+
+local function theme_complete(_, cmdline)
+	local args = vim.split(cmdline, "%s+")
+
+	local result = {}
+
+	-- :Theme evatheme Eva
+	if #args >= 3 then
+		local key = args[2]
+		local prefix = args[3] or ""
+
+		for _, variant in ipairs(registry.themes[key] or {}) do
+			if variant:lower():find(prefix:lower(), 1, true) then
+				table.insert(result, key .. " " .. variant)
+			end
+		end
+		return result
+	end
+
+	-- :Theme <TAB>
+	for key, variants in pairs(registry.themes) do
+		for _, variant in ipairs(variants) do
+			table.insert(result, key .. " " .. variant)
+		end
+	end
+
+	return result
+end
+
+vim.api.nvim_create_user_command("Theme", function(opts)
+	local args = vim.split(opts.args, "%s+", { trimempty = true })
+
+	if #args < 2 then
+		vim.notify("Gunakan: :Theme <theme> <variant>", vim.log.levels.WARN)
+		return
+	end
+
+	local key = args[1]
+	local value = table.concat(args, " ", 2)
+
+	if editor.replace_theme(key, value) then
+		vim.notify(("Theme diset: %s = %s"):format(key, value), vim.log.levels.INFO, { title = "pcode.themes" })
+	else
+		vim.notify("pcode.themes tidak ditemukan", vim.log.levels.ERROR)
+	end
+end, {
+	nargs = "+",
+	complete = theme_complete,
+})
