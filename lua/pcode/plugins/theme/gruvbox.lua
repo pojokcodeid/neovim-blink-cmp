@@ -20,6 +20,8 @@ return {
 				["SignColumn"] = { bg = "NONE" },
 				["MasonBackdrop"] = { link = "NormalFloat" },
 				["TabLineFill"] = { link = "NormalFloat" },
+				["WinBar"] = { link = "NormalFloat" },
+				["WinBarNC"] = { link = "NormalFloat" },
 			},
 		}
 	end,
