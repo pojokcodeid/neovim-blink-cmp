@@ -23,7 +23,7 @@ pcode.extras = {
 	autosave = false,
 	bigfiles = false,
 	bufferline = true,
-	cheatsheet = false,
+	cheatsheet = true,
 	codeium = false,
 	codeiumnvim = false,
 	colorizer = false,
@@ -52,50 +52,32 @@ pcode.extras = {
 	treesittercontex = false,
 	verticalcolumn = false,
 	visualmulti = false,
-	yanky = false,
+	yanky = true,
 	zenmode = false,
 }
 -- activate config themes
-	-- note: open remark only one
-	-- **:: eva theme ::** --
-	-- evatheme = "Eva-Dark",
-	-- evatheme = "Eva-Dark-Italic",
-	-- evatheme = "Eva-Dark-Bold",
-	-- evatheme = "Eva-Light",
-	--
-	-- **:: dracula theme ::** --
-	-- dracula = "dracula",
-	-- dracula = "dracula-soft",
-	--
-	-- **:: onedarkpro theme ::** --
-	-- onedarkpro = "onedark",
-	-- onedarkpro = "onedark_vivid",
-	-- onedarkpro = "onedark_dark",
-	--
-	-- **:: jetbrains theme ::** --
-	-- jetbrains = "darcula-dark",
-	--
-	-- **:: sublimetext theme ::** --
-	-- sublimetext = "juliana",
-	--
-	-- **:: tokyonight theme ::** --
-	-- tokyonight = "tokyonight-night",
-	-- tokyonight = "tokyonight-storm",
-	-- tokyonight = "tokyonight-day",
-	-- tokyonight = "tokyonight-moon",
-	--
-	-- **:: catppuccin theme ::** --
-	-- catppuccin = "catppuccin",
-	-- catppuccin = "catppuccin-latte",
-	-- catppuccin = "catppuccin-frappe",
-	-- catppuccin = "catppuccin-macchiato",
-	-- catppuccin = "catppuccin-macchiato",
-	--
-	-- **:: gruvbox theme ::** --
-	-- gruvbox = "gruvbox",
-	--
-	-- **:: github theme ::** --
-	-- github = "github_dark_dimmed",
+-- evatheme = "Eva-Dark",
+-- evatheme = "Eva-Dark-Italic",
+-- evatheme = "Eva-Dark-Bold",
+-- evatheme = "Eva-Light",
+-- dracula = "dracula",
+-- dracula = "dracula-soft",
+-- onedarkpro = "onedark",
+-- onedarkpro = "onedark_vivid",
+-- onedarkpro = "onedark_dark",
+-- jetbrains = "darcula-dark",
+-- sublimetext = "juliana",
+-- tokyonight = "tokyonight-night",
+-- tokyonight = "tokyonight-storm",
+-- tokyonight = "tokyonight-day",
+-- tokyonight = "tokyonight-moon",
+-- catppuccin = "catppuccin",
+-- catppuccin = "catppuccin-latte",
+-- catppuccin = "catppuccin-frappe",
+-- catppuccin = "catppuccin-macchiato",
+-- catppuccin = "catppuccin-macchiato",
+-- gruvbox = "gruvbox",
+-- github = "github_dark_dimmed",
 
 pcode.themes = {
   dracula = "dracula"

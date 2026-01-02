@@ -114,39 +114,89 @@ end, {})
 local editor = require("pcode.core.default_editor")
 local registry = require("pcode.core.theme_registry")
 
-vim.api.nvim_create_user_command("ActivateRest", function()
-	if editor.set_table_value("pcode.extras", "rest", true) then
-		vim.notify("REST diaktifkan", vim.log.levels.INFO)
-	else
-		vim.notify("REST sudah aktif / tidak ditemukan", vim.log.levels.WARN)
-	end
-end, {})
+-- Fungsi untuk Capitalized Case
+local toCapitalizedCase = function(str)
+	-- ubah semua huruf jadi lowercase dulu
+	str = string.lower(str)
+	-- ganti huruf pertama tiap kata jadi uppercase
+	str = string.gsub(str, "(%w)(%w*)", function(first, rest)
+		return string.upper(first) .. rest
+	end)
+	return str
+end
 
-vim.api.nvim_create_user_command("DeactivateRest", function()
-	if editor.set_table_value("pcode.extras", "rest", false) then
-		vim.notify("REST dimatikan", vim.log.levels.INFO)
-	else
-		vim.notify("REST sudah mati / tidak ditemukan", vim.log.levels.WARN)
-	end
-end, {})
+local createCommand = function(groupTabel, field)
+	local capitalizeField = toCapitalizedCase(field)
 
-vim.api.nvim_create_user_command("ToggleRest", function()
-	local state = editor.toggle_table_value("pcode.extras", "rest")
+	vim.api.nvim_create_user_command("PCodeActivate" .. capitalizeField, function()
+		if editor.set_table_value(groupTabel, field, true) then
+			vim.notify(capitalizeField .. " activated", vim.log.levels.INFO)
+		else
+			vim.notify(capitalizeField .. " already activated / not found", vim.log.levels.WARN)
+		end
+	end, {})
 
-	if state == true then
-		vim.notify("REST activated", vim.log.levels.INFO, {
-			title = "pcode.extras",
-		})
-	elseif state == false then
-		vim.notify("REST deactivated", vim.log.levels.WARN, {
-			title = "pcode.extras",
-		})
-	else
-		vim.notify("Key 'rest' tidak ditemukan", vim.log.levels.ERROR, {
-			title = "pcode.extras",
-		})
-	end
-end, {})
+	vim.api.nvim_create_user_command("PCodeDeactivate" .. capitalizeField, function()
+		if editor.set_table_value(groupTabel, field, false) then
+			vim.notify(capitalizeField .. " deactivated", vim.log.levels.INFO)
+		else
+			vim.notify(capitalizeField .. " already deactivated / not found", vim.log.levels.WARN)
+		end
+	end, {})
+
+	vim.api.nvim_create_user_command("PCodeToggle" .. capitalizeField, function()
+		local state = editor.toggle_table_value(groupTabel, field)
+
+		if state == true then
+			vim.notify(capitalizeField .. " activated", vim.log.levels.INFO, {
+				title = groupTabel,
+			})
+		elseif state == false then
+			vim.notify(capitalizeField .. " deactivated", vim.log.levels.WARN, {
+				title = groupTabel,
+			})
+		else
+			vim.notify("Key " .. field .. " not found", vim.log.levels.ERROR, {
+				title = groupTabel,
+			})
+		end
+	end, {})
+end
+
+createCommand("pcode.extras", "autosave")
+createCommand("pcode.extras", "bigfiles")
+createCommand("pcode.extras", "bufferline")
+createCommand("pcode.extras", "cheatsheet")
+createCommand("pcode.extras", "codeium")
+createCommand("pcode.extras", "codeiumnvim")
+createCommand("pcode.extras", "colorizer")
+createCommand("pcode.extras", "dap")
+createCommand("pcode.extras", "deviconcolor")
+createCommand("pcode.extras", "dressing")
+createCommand("pcode.extras", "fidget")
+createCommand("pcode.extras", "illuminate")
+createCommand("pcode.extras", "indentscupe")
+createCommand("pcode.extras", "liveserver")
+createCommand("pcode.extras", "minianimate")
+createCommand("pcode.extras", "navic")
+createCommand("pcode.extras", "neocodeium")
+createCommand("pcode.extras", "neoscroll")
+createCommand("pcode.extras", "nvimmenu")
+createCommand("pcode.extras", "nvimufo")
+createCommand("pcode.extras", "rainbowdelimiters")
+createCommand("pcode.extras", "refactoring")
+createCommand("pcode.extras", "rest")
+createCommand("pcode.extras", "scrollview")
+createCommand("pcode.extras", "showkeys")
+createCommand("pcode.extras", "smartsplit")
+createCommand("pcode.extras", "telescopediff")
+createCommand("pcode.extras", "telescopetreesiterinfo")
+createCommand("pcode.extras", "tinydignostic")
+createCommand("pcode.extras", "treesittercontex")
+createCommand("pcode.extras", "verticalcolumn")
+createCommand("pcode.extras", "visualmulti")
+createCommand("pcode.extras", "yanky")
+createCommand("pcode.extras", "zenmode")
 
 local function theme_complete(_, cmdline)
 	local args = vim.split(cmdline, "%s+")
@@ -180,7 +230,7 @@ vim.api.nvim_create_user_command("Theme", function(opts)
 	local args = vim.split(opts.args, "%s+", { trimempty = true })
 
 	if #args < 2 then
-		vim.notify("Gunakan: :Theme <theme> <variant>", vim.log.levels.WARN)
+		vim.notify("Use: :Theme <theme> <variant>", vim.log.levels.WARN)
 		return
 	end
 
@@ -188,11 +238,15 @@ vim.api.nvim_create_user_command("Theme", function(opts)
 	local value = table.concat(args, " ", 2)
 
 	if editor.replace_theme(key, value) then
-		vim.notify(("Theme diset: %s = %s"):format(key, value), vim.log.levels.INFO, { title = "pcode.themes" })
+		vim.notify(("Theme set: %s = %s"):format(key, value), vim.log.levels.INFO, { title = "pcode.themes" })
 	else
-		vim.notify("pcode.themes tidak ditemukan", vim.log.levels.ERROR)
+		vim.notify("pcode.themes not found", vim.log.levels.ERROR)
 	end
 end, {
 	nargs = "+",
 	complete = theme_complete,
 })
+
+vim.api.nvim_create_user_command("PcodeConfig", function()
+	require("pcode.ui.pcode_dashboard").open()
+end, {})
