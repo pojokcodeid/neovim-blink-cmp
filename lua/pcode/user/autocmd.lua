@@ -114,89 +114,117 @@ end, {})
 local editor = require("pcode.core.default_editor")
 local registry = require("pcode.core.theme_registry")
 
--- Fungsi untuk Capitalized Case
-local toCapitalizedCase = function(str)
-	-- ubah semua huruf jadi lowercase dulu
-	str = string.lower(str)
-	-- ganti huruf pertama tiap kata jadi uppercase
-	str = string.gsub(str, "(%w)(%w*)", function(first, rest)
-		return string.upper(first) .. rest
-	end)
-	return str
+-- extras data
+local noinstalextras = {}
+local instaledextras = {}
+local extras = pcode.extras or {}
+for key, value in pairs(extras) do
+	if value then
+		table.insert(instaledextras, key)
+	else
+		table.insert(noinstalextras, key)
+	end
 end
 
-local createCommand = function(groupTabel, field)
-	local capitalizeField = toCapitalizedCase(field)
+-- set extras user command
+vim.api.nvim_create_user_command("PCodeAddExtra", function(opts)
+	local groupTabel = "pcode.extras"
+	local fitur = opts.args
 
-	vim.api.nvim_create_user_command("PCodeActivate" .. capitalizeField, function()
-		if editor.set_table_value(groupTabel, field, true) then
-			vim.notify(capitalizeField .. " activated", vim.log.levels.INFO)
-		else
-			vim.notify(capitalizeField .. " already activated / not found", vim.log.levels.WARN)
-		end
-	end, {})
+	if fitur == "" then
+		vim.notify("Gunakan :PCodeActivateExtra <nama_plugin>", vim.log.levels.WARN)
+		return
+	end
 
-	vim.api.nvim_create_user_command("PCodeDeactivate" .. capitalizeField, function()
-		if editor.set_table_value(groupTabel, field, false) then
-			vim.notify(capitalizeField .. " deactivated", vim.log.levels.INFO)
-		else
-			vim.notify(capitalizeField .. " already deactivated / not found", vim.log.levels.WARN)
-		end
-	end, {})
+	if editor.set_table_value(groupTabel, fitur, true) then
+		vim.notify("Extra activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	else
+		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
+	end
+end, {
+	nargs = 1,
+	complete = function()
+		return noinstalextras
+	end,
+})
 
-	vim.api.nvim_create_user_command("PCodeToggle" .. capitalizeField, function()
-		local state = editor.toggle_table_value(groupTabel, field)
+vim.api.nvim_create_user_command("PCodeRemoveExtra", function(opts)
+	local groupTabel = "pcode.extras"
+	local fitur = opts.args
 
-		if state == true then
-			vim.notify(capitalizeField .. " activated", vim.log.levels.INFO, {
-				title = groupTabel,
-			})
-		elseif state == false then
-			vim.notify(capitalizeField .. " deactivated", vim.log.levels.WARN, {
-				title = groupTabel,
-			})
-		else
-			vim.notify("Key " .. field .. " not found", vim.log.levels.ERROR, {
-				title = groupTabel,
-			})
-		end
-	end, {})
+	if fitur == "" then
+		vim.notify("Gunakan :PCodeActivateExtra <nama_plugin>", vim.log.levels.WARN)
+		return
+	end
+
+	if editor.set_table_value(groupTabel, fitur, false) then
+		vim.notify("Extra activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	else
+		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
+	end
+end, {
+	nargs = 1,
+	complete = function()
+		return instaledextras
+	end,
+})
+-- end exptras
+
+-- lang data
+local noinstallang = {}
+local instaledlang = {}
+local langs = pcode.lang or {}
+for key, value in pairs(langs) do
+	if value then
+		table.insert(instaledlang, key)
+	else
+		table.insert(noinstallang, key)
+	end
 end
 
-createCommand("pcode.extras", "autosave")
-createCommand("pcode.extras", "bigfiles")
-createCommand("pcode.extras", "bufferline")
-createCommand("pcode.extras", "cheatsheet")
-createCommand("pcode.extras", "codeium")
-createCommand("pcode.extras", "codeiumnvim")
-createCommand("pcode.extras", "colorizer")
-createCommand("pcode.extras", "dap")
-createCommand("pcode.extras", "deviconcolor")
-createCommand("pcode.extras", "dressing")
-createCommand("pcode.extras", "fidget")
-createCommand("pcode.extras", "illuminate")
-createCommand("pcode.extras", "indentscupe")
-createCommand("pcode.extras", "liveserver")
-createCommand("pcode.extras", "minianimate")
-createCommand("pcode.extras", "navic")
-createCommand("pcode.extras", "neocodeium")
-createCommand("pcode.extras", "neoscroll")
-createCommand("pcode.extras", "nvimmenu")
-createCommand("pcode.extras", "nvimufo")
-createCommand("pcode.extras", "rainbowdelimiters")
-createCommand("pcode.extras", "refactoring")
-createCommand("pcode.extras", "rest")
-createCommand("pcode.extras", "scrollview")
-createCommand("pcode.extras", "showkeys")
-createCommand("pcode.extras", "smartsplit")
-createCommand("pcode.extras", "telescopediff")
-createCommand("pcode.extras", "telescopetreesiterinfo")
-createCommand("pcode.extras", "tinydignostic")
-createCommand("pcode.extras", "treesittercontex")
-createCommand("pcode.extras", "verticalcolumn")
-createCommand("pcode.extras", "visualmulti")
-createCommand("pcode.extras", "yanky")
-createCommand("pcode.extras", "zenmode")
+-- set lang user command
+vim.api.nvim_create_user_command("PCodeAddLang", function(opts)
+	local groupTabel = "pcode.lang"
+	local fitur = opts.args
+
+	if fitur == "" then
+		vim.notify("Gunakan :PCodeAddLang <nama_lang>", vim.log.levels.WARN)
+		return
+	end
+
+	if editor.set_table_value(groupTabel, fitur, true) then
+		vim.notify("Lang activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	else
+		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
+	end
+end, {
+	nargs = 1,
+	complete = function()
+		return noinstallang
+	end,
+})
+
+vim.api.nvim_create_user_command("PCodeRemoveLang", function(opts)
+	local groupTabel = "pcode.lang"
+	local fitur = opts.args
+
+	if fitur == "" then
+		vim.notify("Gunakan :PCodeRemoveLang <nama_lang>", vim.log.levels.WARN)
+		return
+	end
+
+	if editor.set_table_value(groupTabel, fitur, false) then
+		vim.notify("Lang removed: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	else
+		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
+	end
+end, {
+	nargs = 1,
+	complete = function()
+		return instaledlang
+	end,
+})
+-- end lang
 
 local function theme_complete(_, cmdline)
 	local args = vim.split(cmdline, "%s+")

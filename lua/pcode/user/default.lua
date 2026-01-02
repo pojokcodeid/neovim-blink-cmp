@@ -23,7 +23,7 @@ pcode.extras = {
 	autosave = false,
 	bigfiles = false,
 	bufferline = true,
-	cheatsheet = true,
+	cheatsheet = false,
 	codeium = false,
 	codeiumnvim = false,
 	colorizer = false,
@@ -51,7 +51,7 @@ pcode.extras = {
 	tinydignostic = false,
 	treesittercontex = false,
 	verticalcolumn = false,
-	visualmulti = false,
+	visualmulti = true,
 	yanky = true,
 	zenmode = false,
 }
