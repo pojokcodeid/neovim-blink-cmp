@@ -17,7 +17,7 @@ M.themes = {
 		"onedark_dark",
 	},
 	jetbrains = {
-		"dracula-dark",
+		"darcula-dark",
 	},
 	sublimetext = {
 		"juliana",

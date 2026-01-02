@@ -5,7 +5,7 @@
   "auto-conform.nvim": { "branch": "main", "commit": "7d989a97596c8df8732fe6d20ba10528d984ab4e" },
   "auto-lint.nvim": { "branch": "main", "commit": "aff13cb8eaa055e66e940d43b7d83166397e5413" },
   "auto-lualine.nvim": { "branch": "main", "commit": "201da916411a56d0b27905528a7cb49a320ee054" },
-  "blink-ripgrep.nvim": { "branch": "main", "commit": "110e81f90c2cfdb6e25dcd06bdd0528be34c804b" },
+  "blink-ripgrep.nvim": { "branch": "main", "commit": "29d4d4f5f8f551580c1dff1473fa84f978223c6c" },
   "blink.cmp": { "branch": "main", "commit": "b19413d214068f316c78978b08264ed1c41830ec" },
   "breadcrumbs.nvim": { "branch": "master", "commit": "a59e3ee12818135098e5ce8efeb7b58b675b09ec" },
   "colorful-menu.nvim": { "branch": "master", "commit": "b51a659459df8d078201aefc995db8175ed55e84" },
