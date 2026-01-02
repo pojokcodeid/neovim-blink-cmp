@@ -35,6 +35,7 @@ return {
 				hi(0, "TelescopeResultsTitle", { bg = colors.olive_green, fg = colors.very_dark_gray })
 				hi(0, "MasonBackdrop", { link = "NormalFloat" })
 				hi(0, "TabLineFill", { link = "NormalFloat" })
+				hi(0, "NotifyBackground", { bg = "#2B2B2B" })
 			end,
 		})
 		local colorscheme = pcode.themes.jetbrains or "darcula-dark"

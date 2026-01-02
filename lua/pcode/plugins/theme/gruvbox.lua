@@ -22,7 +22,7 @@ return {
 				["TabLineFill"] = { link = "NormalFloat" },
 				["WinBar"] = { link = "NormalFloat" },
 				["WinBarNC"] = { link = "NormalFloat" },
-				["NotifyBackground"] = { link = "NormalFloat" },
+				["NotifyBackground"] = { bg="#282828"},
 			},
 		}
 	end,
