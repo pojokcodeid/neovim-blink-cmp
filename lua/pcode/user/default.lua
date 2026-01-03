@@ -52,7 +52,7 @@ pcode.extras = {
 	telescopediff = false,
 	telescopetreesiterinfo = false,
 	tinydignostic = false,
-	transparent = true,
+	transparent = false,
 	treesittercontex = false,
 	verticalcolumn = false,
 	visualmulti = true,
@@ -84,7 +84,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  jetbrains = "darcula-dark"
+  dracula = "dracula"
 }
 -- activate config transparent_bg
 -- pcode.transparent=false

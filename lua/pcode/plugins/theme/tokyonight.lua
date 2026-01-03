@@ -74,6 +74,8 @@ return {
 				highlights.MasonBackdrop = { link = "NormalFloat" }
 				highlights.TabLineFill = { link = "NormalFloat" }
 				highlights.ColorColumn = { bg = "#292e42" }
+				highlights.NormalTab = { bg = colors.bg }
+				highlights.ColorColumnTab = { bg = colors.bg_highlight }
 			end,
 		})
 	end,
