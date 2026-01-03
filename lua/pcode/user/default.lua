@@ -84,11 +84,11 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  gruvbox = "gruvbox"
+  evatheme = "Eva-Dark"
 }
 -- activate config transparent_bg
 -- pcode.transparent=false
-pcode.localcode = true
+pcode.localcode = false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true
 pcode.nvimtree_float = false
