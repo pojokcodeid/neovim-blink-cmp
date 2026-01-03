@@ -26,7 +26,7 @@ pcode.extras = {
 	cheatsheet = false,
 	codeium = false,
 	codeiumnvim = false,
-	colorizer = false,
+	colorizer = true,
 	dap = false,
 	deviconcolor = false,
 	dressing = true,
@@ -52,7 +52,7 @@ pcode.extras = {
 	telescopediff = false,
 	telescopetreesiterinfo = false,
 	tinydignostic = false,
-	transparent = false,
+	transparent = true,
 	treesittercontex = false,
 	verticalcolumn = false,
 	visualmulti = true,
@@ -84,7 +84,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-	dracula = "dracula",
+  gruvbox = "gruvbox"
 }
 -- activate config transparent_bg
 -- pcode.transparent=false

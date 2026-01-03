@@ -4,6 +4,7 @@ return {
 	opts = function()
 		local color = require("gruvbox").palette
 		return {
+			transparent_mode = true,
 			terminal_colors = true, -- add neovim terminal colors
 			undercurl = false,
 			underline = false,
@@ -11,6 +12,7 @@ return {
 			contrast = "", -- can be "hard", "soft" or empty string
 			palette_overrides = {},
 			overrides = {
+				["Normal"] = { bg = color.dark0, fg = color.light1 },
 				["NormalFloat"] = { bg = "NONE" },
 				["NormalNC"] = { bg = "NONE" },
 				["MiniIndentscopeSymbol"] = { fg = color.bright_yellow },
@@ -22,7 +24,9 @@ return {
 				["TabLineFill"] = { link = "NormalFloat" },
 				["WinBar"] = { link = "NormalFloat" },
 				["WinBarNC"] = { link = "NormalFloat" },
-				["NotifyBackground"] = { bg="#282828"},
+				["NotifyBackground"] = { bg = "#282828" },
+				["NormalTab"] = { bg = color.dark0, fg = color.light1 },
+				["ColorColumnTab"] = { bg = color.dark1 },
 			},
 		}
 	end,
