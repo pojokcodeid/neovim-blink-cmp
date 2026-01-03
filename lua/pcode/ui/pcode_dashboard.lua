@@ -1,3 +1,4 @@
+local header = require("pcode.ui.header_renderer")
 local popup = require("pcode.ui.popup")
 local renderer = require("pcode.ui.table_renderer")
 
@@ -26,6 +27,7 @@ function M.open()
 		end
 	end
 
+	append(header.render())
 	append(renderer.render_boolean_table("Languages", pcode.lang or {}))
 	append(renderer.render_boolean_table("Extras", pcode.extras or {}))
 	append(renderer.render_key_value("Themes", pcode.themes or {}))

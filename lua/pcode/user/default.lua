@@ -5,9 +5,9 @@ pcode.lang = {
 	deno = false,
 	golang = false,
 	java = false,
-	java2 = false,
+	--[[ 	java2 = false,
 	java3 = false,
-	java4 = false,
+	java4 = false, ]]
 	javascript = false,
 	kotlin = false,
 	markdown = false,
@@ -44,7 +44,7 @@ pcode.extras = {
 	refactoring = false,
 	rest = false,
 	scrollview = false,
-	showkeys = true,
+	showkeys = false,
 	smartsplit = false,
 	telescopediff = false,
 	telescopetreesiterinfo = false,
@@ -80,7 +80,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  dracula = "dracula"
+	dracula = "dracula",
 }
 -- activate config transparent_bg
 pcode.transparent = false
