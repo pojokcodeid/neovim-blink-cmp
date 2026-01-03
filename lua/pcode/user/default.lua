@@ -84,7 +84,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  onedarkpro = "onedark"
+  dracula = "dracula"
 }
 -- activate config transparent_bg
 -- pcode.transparent=false
