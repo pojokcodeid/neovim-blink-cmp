@@ -23,6 +23,7 @@ return {
 					-- "NotifyBackground",
 					"TabLine",
 					"TabLineFill",
+					"TabLineSel",
 				},
 				exclude_groups = {
 					-- disable active selection backgroun
