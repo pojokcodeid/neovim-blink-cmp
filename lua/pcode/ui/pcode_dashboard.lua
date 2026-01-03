@@ -28,11 +28,11 @@ function M.open()
 	end
 
 	append(header.render())
-	append(renderer.render_boolean_table("Languages", pcode.lang or {}))
-	append(renderer.render_boolean_table("Extras", pcode.extras or {}))
-	append(renderer.render_key_value("Themes", pcode.themes or {}))
+	append(renderer.render_boolean_table(" Languages", pcode.lang or {}))
+	append(renderer.render_boolean_table(" Extras", pcode.extras or {}))
+	append(renderer.render_key_value("󰏘 Themes", pcode.themes or {}))
 
-	append(renderer.render_key_value("Flags", {
+	append(renderer.render_key_value(" Flags", {
 		transparent = pcode.transparent,
 		localcode = pcode.localcode,
 		use_nvimtree = pcode.use_nvimtree,

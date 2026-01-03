@@ -275,6 +275,6 @@ end, {
 	complete = theme_complete,
 })
 
-vim.api.nvim_create_user_command("PcodeConfig", function()
+vim.api.nvim_create_user_command("PCodeConfig", function()
 	require("pcode.ui.pcode_dashboard").open()
 end, {})
