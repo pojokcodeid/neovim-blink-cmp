@@ -36,6 +36,8 @@ return {
 				hi(0, "MasonBackdrop", { link = "NormalFloat" })
 				hi(0, "TabLineFill", { link = "NormalFloat" })
 				hi(0, "NotifyBackground", { bg = "#2B2B2B" })
+				hi(0, "NormalTab", { bg = "#2B2B2B", fg = colors.grey })
+				hi(0, "ColorColumnTab", { bg = "#383838", fg = colors.grey })
 			end,
 		})
 		local colorscheme = pcode.themes.jetbrains or "darcula-dark"

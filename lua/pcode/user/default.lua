@@ -84,7 +84,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  evatheme = "Eva-Dark"
+  jetbrains = "darcula-dark"
 }
 -- activate config transparent_bg
 -- pcode.transparent=false
