@@ -21,7 +21,7 @@ return {
 				components = {
 					{
 						text = " ",
-						bg = hl_attr("Normal", "bg"),
+						bg = hl_attr("NormalTab", "bg"),
 					},
 					{
 						text = function(buf)
@@ -33,7 +33,7 @@ return {
 						end,
 						fg = yellow,
 						bg = function()
-							return hl_attr("Normal", "bg")
+							return hl_attr("NormalTab", "bg")
 						end,
 						bold = true,
 					},
@@ -41,17 +41,17 @@ return {
 			},
 			default_hl = {
 				fg = function(buffer)
-					return buffer.is_focused and hl_attr("Normal", "fg") or hl_attr("Comment", "fg")
+					return buffer.is_focused and hl_attr("NormalTab", "fg") or hl_attr("Comment", "fg")
 				end,
 				bg = function(buffer)
-					return buffer.is_focused and hl_attr("ColorColumn", "bg") or hl_attr("Normal", "bg")
+					return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
 				end,
 			},
 			--[[ 			components = {
 				{
 					text = "｜",
 					fg = hl_attr("Comment", "fg"),
-					bg = hl_attr("Normal", "bg"),
+					bg = hl_attr("NormalTab", "bg"),
 				},
 				{
 					text = function(buffer)
@@ -83,18 +83,18 @@ return {
 			components = {
 				{
 					text = " ",
-					bg = hl_attr("Normal", "bg"),
+					bg = hl_attr("NormalTab", "bg"),
 				},
 				{
 					text = "",
 					fg = function(buffer)
 						if buffer.is_focused then
-							return hl_attr("ColorColumn", "bg")
+							return hl_attr("ColorColumnTab", "bg")
 						else
-							return hl_attr("Normal", "bg")
+							return hl_attr("NormalTab", "bg")
 						end
 					end,
-					bg = hl_attr("Normal", "bg"),
+					bg = hl_attr("NormalTab", "bg"),
 				},
 				{
 					text = function(buffer)
@@ -123,12 +123,12 @@ return {
 					text = "",
 					fg = function(buffer)
 						if buffer.is_focused then
-							return hl_attr("ColorColumn", "bg")
+							return hl_attr("ColorColumnTab", "bg")
 						else
-							return hl_attr("Normal", "bg")
+							return hl_attr("NormalTab", "bg")
 						end
 					end,
-					bg = hl_attr("Normal", "bg"),
+					bg = hl_attr("NormalTab", "bg"),
 				},
 			},
 		}

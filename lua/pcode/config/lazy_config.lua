@@ -46,10 +46,10 @@ for key, value in pairs(lang) do
 	end
 end
 -- load transparant config
-local transparant = pcode.transparent or false
+--[[ local transparant = pcode.transparent or false
 if transparant then
 	table.insert(importdata, { import = "pcode.plugins.extras.transparent" })
-end
+end ]]
 -- add overide path
 table.insert(importdata, { import = "pcode.user.custom" })
 -- Setup lazy.nvim

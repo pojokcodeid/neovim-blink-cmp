@@ -52,6 +52,7 @@ pcode.extras = {
 	telescopediff = false,
 	telescopetreesiterinfo = false,
 	tinydignostic = false,
+	transparent = true,
 	treesittercontex = false,
 	verticalcolumn = false,
 	visualmulti = true,
@@ -86,7 +87,7 @@ pcode.themes = {
 	dracula = "dracula",
 }
 -- activate config transparent_bg
-pcode.transparent = false
+-- pcode.transparent=false
 pcode.localcode = true
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true

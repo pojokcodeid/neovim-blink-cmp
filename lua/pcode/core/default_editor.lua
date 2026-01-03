@@ -40,6 +40,33 @@ function M.set_table_value(table_name, key, value)
 	return changed
 end
 
+function M.set_dot_value(full_key, value)
+	local lines = read()
+	local changed = false
+	local value_str = tostring(value)
+
+	for i, line in ipairs(lines) do
+		-- escape dot untuk pattern lua
+		local key_pattern = full_key:gsub("%.", "%%.")
+
+		-- match:
+		-- pcode.transparent=false
+		-- pcode.transparent = false
+		local pattern = key_pattern .. "%s*=%s*[^,%s}]+"
+
+		if line:match(pattern) then
+			lines[i] = line:gsub(pattern, full_key .. "=" .. value_str)
+			changed = true
+		end
+	end
+
+	if changed then
+		write(lines)
+	end
+
+	return changed
+end
+
 function M.toggle_table_value(table_name, key)
 	local lines = read()
 	local in_table = false
