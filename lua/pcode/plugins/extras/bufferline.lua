@@ -21,7 +21,7 @@ return {
 				components = {
 					{
 						text = " ",
-						bg = hl_attr("NormalTab", "bg"),
+						bg = hl_attr("Normal", "bg"),
 					},
 					{
 						text = function(buf)
@@ -33,57 +33,16 @@ return {
 						end,
 						fg = yellow,
 						bg = function()
-							return hl_attr("NormalTab", "bg")
+							return hl_attr("Normal", "bg")
 						end,
 						bold = true,
 					},
 				},
 			},
-			default_hl = {
-				fg = function(buffer)
-					return buffer.is_focused and hl_attr("NormalTab", "fg") or hl_attr("Comment", "fg")
-				end,
-				bg = function(buffer)
-					return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
-				end,
-			},
-			--[[ 			components = {
-				{
-					text = "｜",
-					fg = hl_attr("Comment", "fg"),
-					bg = hl_attr("NormalTab", "bg"),
-				},
-				{
-					text = function(buffer)
-						return " " .. buffer.devicon.icon
-					end,
-					fg = function(buffer)
-						return buffer.devicon.color
-					end,
-				},
-				{
-					text = " ",
-				},
-				{
-					text = function(buffer)
-						return truncate_text(buffer.filename, 12) .. " "
-					end,
-					style = function(buffer)
-						return buffer.is_focused and "bold" or nil
-					end,
-					italic = function(buffer)
-						return buffer.is_focused and true or nil
-					end,
-				},
-				{
-					text = "󰅖 ",
-					delete_buffer_on_left_click = true,
-				},
-			}, ]]
 			components = {
 				{
 					text = " ",
-					bg = hl_attr("NormalTab", "bg"),
+					bg = hl_attr("Normal", "bg"),
 				},
 				{
 					text = "",
@@ -94,7 +53,7 @@ return {
 							return hl_attr("NormalTab", "bg")
 						end
 					end,
-					bg = hl_attr("NormalTab", "bg"),
+					bg = hl_attr("Normal", "bg"),
 				},
 				{
 					text = function(buffer)
@@ -103,9 +62,15 @@ return {
 					fg = function(buffer)
 						return buffer.devicon.color
 					end,
+					bg = function(buffer)
+						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
+					end,
 				},
 				{
 					text = " ",
+					bg = function(buffer)
+						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
+					end,
 				},
 				{
 					text = function(buffer)
@@ -114,10 +79,16 @@ return {
 					style = function(buffer)
 						return buffer.is_focused and "bold" or nil
 					end,
+					bg = function(buffer)
+						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
+					end,
 				},
 				{
 					text = "󰅖",
 					delete_buffer_on_left_click = true,
+					bg = function(buffer)
+						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
+					end,
 				},
 				{
 					text = "",
@@ -128,7 +99,7 @@ return {
 							return hl_attr("NormalTab", "bg")
 						end
 					end,
-					bg = hl_attr("NormalTab", "bg"),
+					bg = hl_attr("Normal", "bg"),
 				},
 			},
 		}
