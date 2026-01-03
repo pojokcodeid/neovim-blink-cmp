@@ -3,9 +3,10 @@ local M = {}
 function M.open(opts)
 	opts = opts or {}
 
-	local title = opts.title or "Popup"
 	local content = opts.content or {}
+	local title = opts.title or "Popup"
 	local filetype = opts.filetype or "lua"
+	local highlights = opts.highlights or {}
 
 	local width = opts.width or math.floor(vim.o.columns * 0.8)
 	local height = opts.height or math.floor(vim.o.lines * 0.8)
@@ -34,6 +35,15 @@ function M.open(opts)
 		title_pos = "center",
 	})
 
+	-- apply highlights
+	if #highlights > 0 then
+		local ns = vim.api.nvim_create_namespace("pcode_popup")
+		for _, h in ipairs(highlights) do
+			vim.api.nvim_buf_add_highlight(buf, ns, h.hl, h.line, h.col_start, h.col_end)
+		end
+	end
+
+	-- close helpers
 	local function close()
 		if vim.api.nvim_win_is_valid(win) then
 			vim.api.nvim_win_close(win, true)
