@@ -193,11 +193,23 @@ vim.api.nvim_create_user_command("PCodeAdd", function(opts)
 	end
 
 	if editor.set_dot_value(groupTabel .. "." .. fitur, true) then
-		vim.notify("Config activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+		vim.notify(
+			"Config activated: " .. fitur .. "\n Please restart Neovim",
+			vim.log.levels.INFO,
+			{ title = groupTabel }
+		)
 	elseif editor.set_table_value(groupTabel2, fitur, true) then
-		vim.notify("Extra activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+		vim.notify(
+			"Extra activated: " .. fitur .. "\n Please restart Neovim",
+			vim.log.levels.INFO,
+			{ title = groupTabel }
+		)
 	elseif editor.set_table_value(groupTabel3, fitur, true) then
-		vim.notify("Lang activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+		vim.notify(
+			"Lang activated: " .. fitur .. "\n Please restart Neovim",
+			vim.log.levels.INFO,
+			{ title = groupTabel }
+		)
 	else
 		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
 	end
@@ -224,11 +236,19 @@ vim.api.nvim_create_user_command("PCodeRemove", function(opts)
 	end
 
 	if editor.set_dot_value(groupTabel .. "." .. fitur, false) then
-		vim.notify("Config inactive: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+		vim.notify(
+			"Config inactive: " .. fitur .. "\n Please restart Neovim",
+			vim.log.levels.INFO,
+			{ title = groupTabel }
+		)
 	elseif editor.set_table_value(groupTabel2, fitur, false) then
-		vim.notify("Extra removed: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+		vim.notify(
+			"Extra removed: " .. fitur .. "\n Please restart Neovim",
+			vim.log.levels.INFO,
+			{ title = groupTabel }
+		)
 	elseif editor.set_table_value(groupTabel3, fitur, false) then
-		vim.notify("Lang removed: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+		vim.notify("Lang removed: " .. fitur .. "\n Please restart Neovim", vim.log.levels.INFO, { title = groupTabel })
 	else
 		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
 	end
