@@ -114,6 +114,20 @@ end, {})
 local editor = require("pcode.core.default_editor")
 local registry = require("pcode.core.theme_registry")
 
+-- Fungsi untuk menggabungkan dua table
+local function gabungTable(a, b)
+	local hasil = {}
+	-- masukkan isi table pertama
+	for i = 1, #a do
+		table.insert(hasil, a[i])
+	end
+	-- masukkan isi table kedua
+	for i = 1, #b do
+		table.insert(hasil, b[i])
+	end
+	return hasil
+end
+
 -- extras data
 local noinstalextras = {}
 local instaledextras = {}
@@ -125,6 +139,8 @@ for key, value in pairs(extras) do
 		table.insert(noinstalextras, key)
 	end
 end
+table.sort(noinstalextras)
+table.sort(instaledextras)
 
 -- set extras user command
 vim.api.nvim_create_user_command("PCodeAddExtra", function(opts)
@@ -170,62 +186,6 @@ end, {
 })
 -- end exptras
 
--- activate data
-local noactivateds = {}
-local activateds = {}
-local activate = pcode or {}
-for key, value in pairs(activate) do
-	if value == true then
-		table.insert(activateds, key)
-	elseif value == false then
-		table.insert(noactivateds, key)
-	end
-end
-
--- set extras user command
-vim.api.nvim_create_user_command("PCodeAdd", function(opts)
-	local groupTabel = "pcode"
-	local fitur = opts.args
-
-	if fitur == "" then
-		vim.notify("Gunakan :PCodeAdd <nama_plugin>", vim.log.levels.WARN)
-		return
-	end
-
-	if editor.set_dot_value(groupTabel .. "." .. fitur, true) then
-		vim.notify("Extra activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
-	else
-		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
-	end
-end, {
-	nargs = 1,
-	complete = function()
-		return noactivateds
-	end,
-})
-
-vim.api.nvim_create_user_command("PCodeRemove", function(opts)
-	local groupTabel = "pcode"
-	local fitur = opts.args
-
-	if fitur == "" then
-		vim.notify("Gunakan :PCodeAdd <nama_plugin>", vim.log.levels.WARN)
-		return
-	end
-
-	if editor.set_dot_value(groupTabel .. "." .. fitur, false) then
-		vim.notify("Extra activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
-	else
-		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
-	end
-end, {
-	nargs = 1,
-	complete = function()
-		return activateds
-	end,
-})
--- end activate
-
 -- lang data
 local noinstallang = {}
 local instaledlang = {}
@@ -237,6 +197,8 @@ for key, value in pairs(langs) do
 		table.insert(noinstallang, key)
 	end
 end
+-- table.sort(noinstallang)
+-- table.sort(instaledlang)
 
 -- set lang user command
 vim.api.nvim_create_user_command("PCodeAddLang", function(opts)
@@ -281,6 +243,83 @@ end, {
 	end,
 })
 -- end lang
+
+-- activate data
+local noactivateds = {}
+local activateds = {}
+local activate = pcode or {}
+for key, value in pairs(activate) do
+	if value == true then
+		table.insert(activateds, key)
+	elseif value == false then
+		table.insert(noactivateds, key)
+	end
+end
+-- table.sort(noactivateds)
+-- table.sort(activateds)
+
+local gabungan = gabungTable(noinstalextras, noactivateds)
+gabungan = gabungTable(gabungan, noinstallang)
+
+local gabungInstalled = gabungTable(instaledextras, activateds)
+gabungInstalled = gabungTable(gabungInstalled, instaledlang)
+
+-- set extras user command
+vim.api.nvim_create_user_command("PCodeAdd", function(opts)
+	local groupTabel = "pcode"
+	local groupTabel2 = "pcode.extras"
+	local groupTabel3 = "pcode.lang"
+	local fitur = opts.args
+
+	if fitur == "" then
+		vim.notify("Gunakan :PCodeAdd <nama_plugin>", vim.log.levels.WARN)
+		return
+	end
+
+	if editor.set_dot_value(groupTabel .. "." .. fitur, true) then
+		vim.notify("Config activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	elseif editor.set_table_value(groupTabel2, fitur, true) then
+		vim.notify("Extra activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	elseif editor.set_table_value(groupTabel3, fitur, true) then
+		vim.notify("Lang activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	else
+		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
+	end
+end, {
+	nargs = 1,
+	complete = function()
+		-- return noactivateds
+		return gabungan
+	end,
+})
+
+vim.api.nvim_create_user_command("PCodeRemove", function(opts)
+	local groupTabel = "pcode"
+	local groupTabel2 = "pcode.extras"
+	local groupTabel3 = "pcode.lang"
+	local fitur = opts.args
+
+	if fitur == "" then
+		vim.notify("Gunakan :PCodeAdd <nama_plugin>", vim.log.levels.WARN)
+		return
+	end
+
+	if editor.set_dot_value(groupTabel .. "." .. fitur, false) then
+		vim.notify("Config inactive: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	elseif editor.set_table_value(groupTabel2, fitur, false) then
+		vim.notify("Extra removed: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	elseif editor.set_table_value(groupTabel3, fitur, false) then
+		vim.notify("Lang removed: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
+	else
+		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
+	end
+end, {
+	nargs = 1,
+	complete = function()
+		return gabungInstalled
+	end,
+})
+-- end activate
 
 local function theme_complete(_, cmdline)
 	local args = vim.split(cmdline, "%s+")
