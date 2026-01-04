@@ -134,56 +134,13 @@ local instaledextras = {}
 local extras = pcode.extras or {}
 for key, value in pairs(extras) do
 	if value then
-		table.insert(instaledextras, key)
+		table.insert(instaledextras, "Extras => " .. key)
 	else
-		table.insert(noinstalextras, key)
+		table.insert(noinstalextras, "Extras => " .. key)
 	end
 end
 table.sort(noinstalextras)
 table.sort(instaledextras)
-
--- set extras user command
-vim.api.nvim_create_user_command("PCodeAddExtra", function(opts)
-	local groupTabel = "pcode.extras"
-	local fitur = opts.args
-
-	if fitur == "" then
-		vim.notify("Gunakan :PCodeActivateExtra <nama_plugin>", vim.log.levels.WARN)
-		return
-	end
-
-	if editor.set_table_value(groupTabel, fitur, true) then
-		vim.notify("Extra activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
-	else
-		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
-	end
-end, {
-	nargs = 1,
-	complete = function()
-		return noinstalextras
-	end,
-})
-
-vim.api.nvim_create_user_command("PCodeRemoveExtra", function(opts)
-	local groupTabel = "pcode.extras"
-	local fitur = opts.args
-
-	if fitur == "" then
-		vim.notify("Gunakan :PCodeActivateExtra <nama_plugin>", vim.log.levels.WARN)
-		return
-	end
-
-	if editor.set_table_value(groupTabel, fitur, false) then
-		vim.notify("Extra activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
-	else
-		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
-	end
-end, {
-	nargs = 1,
-	complete = function()
-		return instaledextras
-	end,
-})
 -- end exptras
 
 -- lang data
@@ -192,57 +149,13 @@ local instaledlang = {}
 local langs = pcode.lang or {}
 for key, value in pairs(langs) do
 	if value then
-		table.insert(instaledlang, key)
+		table.insert(instaledlang, "Lang => " .. key)
 	else
-		table.insert(noinstallang, key)
+		table.insert(noinstallang, "Lang => " .. key)
 	end
 end
--- table.sort(noinstallang)
--- table.sort(instaledlang)
-
--- set lang user command
-vim.api.nvim_create_user_command("PCodeAddLang", function(opts)
-	local groupTabel = "pcode.lang"
-	local fitur = opts.args
-
-	if fitur == "" then
-		vim.notify("Gunakan :PCodeAddLang <nama_lang>", vim.log.levels.WARN)
-		return
-	end
-
-	if editor.set_table_value(groupTabel, fitur, true) then
-		vim.notify("Lang activated: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
-	else
-		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
-	end
-end, {
-	nargs = 1,
-	complete = function()
-		return noinstallang
-	end,
-})
-
-vim.api.nvim_create_user_command("PCodeRemoveLang", function(opts)
-	local groupTabel = "pcode.lang"
-	local fitur = opts.args
-
-	if fitur == "" then
-		vim.notify("Gunakan :PCodeRemoveLang <nama_lang>", vim.log.levels.WARN)
-		return
-	end
-
-	if editor.set_table_value(groupTabel, fitur, false) then
-		vim.notify("Lang removed: " .. fitur, vim.log.levels.INFO, { title = groupTabel })
-	else
-		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
-	end
-end, {
-	nargs = 1,
-	complete = function()
-		return instaledlang
-	end,
-})
--- end lang
+table.sort(noinstallang)
+table.sort(instaledlang)
 
 -- activate data
 local noactivateds = {}
@@ -250,13 +163,13 @@ local activateds = {}
 local activate = pcode or {}
 for key, value in pairs(activate) do
 	if value == true then
-		table.insert(activateds, key)
+		table.insert(activateds, "Conf => " .. key)
 	elseif value == false then
-		table.insert(noactivateds, key)
+		table.insert(noactivateds, "Conf => " .. key)
 	end
 end
--- table.sort(noactivateds)
--- table.sort(activateds)
+table.sort(noactivateds)
+table.sort(activateds)
 
 local gabungan = gabungTable(noinstalextras, noactivateds)
 gabungan = gabungTable(gabungan, noinstallang)
@@ -270,6 +183,9 @@ vim.api.nvim_create_user_command("PCodeAdd", function(opts)
 	local groupTabel2 = "pcode.extras"
 	local groupTabel3 = "pcode.lang"
 	local fitur = opts.args
+	fitur = string.gsub(fitur, "Lang%s*=>%s*", "")
+	fitur = string.gsub(fitur, "Extras%s*=>%s*", "")
+	fitur = string.gsub(fitur, "Conf%s*=>%s*", "")
 
 	if fitur == "" then
 		vim.notify("Gunakan :PCodeAdd <nama_plugin>", vim.log.levels.WARN)
@@ -298,6 +214,9 @@ vim.api.nvim_create_user_command("PCodeRemove", function(opts)
 	local groupTabel2 = "pcode.extras"
 	local groupTabel3 = "pcode.lang"
 	local fitur = opts.args
+	fitur = string.gsub(fitur, "Lang%s*=>%s*", "")
+	fitur = string.gsub(fitur, "Extras%s*=>%s*", "")
+	fitur = string.gsub(fitur, "Conf%s*=>%s*", "")
 
 	if fitur == "" then
 		vim.notify("Gunakan :PCodeAdd <nama_plugin>", vim.log.levels.WARN)

@@ -90,7 +90,7 @@ pcode.themes = {
 }
 -- activate config transparent_bg
 -- pcode.transparent=false
-pcode.localcode = false
+pcode.localcode=false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true
 pcode.nvimtree_float = false

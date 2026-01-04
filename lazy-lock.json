@@ -8,6 +8,7 @@
   "blink-ripgrep.nvim": { "branch": "main", "commit": "2e14682667d332520de254c2b21f6e77ae2c1b87" },
   "blink.cmp": { "branch": "main", "commit": "b19413d214068f316c78978b08264ed1c41830ec" },
   "breadcrumbs.nvim": { "branch": "master", "commit": "a59e3ee12818135098e5ce8efeb7b58b675b09ec" },
+  "cheatsheet-nvim": { "branch": "main", "commit": "aaf8f4cc76e193997d0d0a27384cf09418fd7996" },
   "colorful-menu.nvim": { "branch": "master", "commit": "b51a659459df8d078201aefc995db8175ed55e84" },
   "conform.nvim": { "branch": "master", "commit": "8314f4c9e205e7f30b62147069729f9a1227d8bf" },
   "dracula.nvim": { "branch": "main", "commit": "ae752c13e95fb7c5f58da4b5123cb804ea7568ee" },
