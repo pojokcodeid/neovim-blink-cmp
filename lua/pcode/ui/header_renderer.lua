@@ -10,6 +10,8 @@ function M.render()
 		"   PCodeRemoveExtra => Command for remove extra config  ",
 		"   PCodeAddLang     => Command for active language config  ",
 		"   PCodeRemoveLang  => Command for remove language config  ",
+		"   PCodeAdd         => Command for active plugin config  ",
+		"   PCodeRemove      => Command for remove plugin config  ",
 		"   Theme            => Command for change theme ",
 		"",
 	}
