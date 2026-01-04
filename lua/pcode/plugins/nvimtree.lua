@@ -18,7 +18,7 @@ if pcode.use_nvimtree then
 			"NvimTreeClose",
 		},
 		keys = {
-			{ "<leader>e", "<cmd>NvimTreeToggle<cr>", desc = "󰙅 Explorer" },
+			{ "<leader>e", "<cmd>NvimTreeToggle<cr>", desc = "Explorer" },
 		},
 		opts = function(_, opts)
 			local icons = require("pcode.user.icons")
