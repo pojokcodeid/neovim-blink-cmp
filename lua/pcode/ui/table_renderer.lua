@@ -58,7 +58,18 @@ function M.render_boolean_table(title, tbl)
 	table.insert(lines, string.rep("─", 45))
 	table.insert(lines, string.format("%-22s %-10s", "NAME", "STATUS"))
 
-	for key, val in pairs(tbl) do
+	-- Ambil semua key
+	local keys = {}
+	for key, _ in pairs(tbl) do
+		table.insert(keys, key)
+	end
+
+	-- Sort ascending
+	table.sort(keys)
+
+	-- Iterasi sesuai urutan
+	for _, key in ipairs(keys) do
+		local val = tbl[key]
 		local status = val and "ON" or "OFF"
 		local icon = val and "✓" or " "
 		table.insert(lines, string.format("%-22s [%s] %s", key, icon, status))
@@ -67,7 +78,6 @@ function M.render_boolean_table(title, tbl)
 	table.insert(lines, "")
 	return lines, highlights
 end
-
 -- =========================
 -- KEY VALUE TABLE
 -- =========================
