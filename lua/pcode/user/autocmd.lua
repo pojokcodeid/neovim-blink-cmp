@@ -334,3 +334,8 @@ end, {
 vim.api.nvim_create_user_command("PcodeConfig", function()
 	require("pcode.ui.pcode_dashboard").open()
 end, {})
+
+-- Nonaktifkan kombinasi CTRL+SHIFT+Drag Mouse
+vim.keymap.set("", "<C-S-LeftMouse>", "<Nop>", { noremap = true, silent = true })
+vim.keymap.set("", "<C-S-LeftDrag>", "<Nop>", { noremap = true, silent = true })
+vim.keymap.set("", "<C-S-LeftRelease>", "<Nop>", { noremap = true, silent = true })
