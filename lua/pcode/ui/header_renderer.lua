@@ -5,7 +5,7 @@ vim.api.nvim_set_hl(0, "PcodeHeaderTitle", { bg = "#FFCDC9", fg = "#1e1e1e", bol
 
 function M.render()
 	local lines = {
-		"  Command: ",
+		"  Command ",
 		"   PCodeAdd         => Command for active plugin config  ",
 		"   PCodeRemove      => Command for remove plugin config  ",
 		"   Theme            => Command for change theme ",
