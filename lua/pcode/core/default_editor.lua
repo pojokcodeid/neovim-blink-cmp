@@ -1,6 +1,17 @@
 local M = {}
 
-local path = vim.fn.stdpath("config") .. "/lua/pcode/user/default.lua"
+local paths = {
+	vim.fn.stdpath("config") .. "/lua/pcode/user/default.lua",
+	vim.fn.stdpath("config") .. "/lua/user/default.lua",
+}
+
+local path
+for _, p in ipairs(paths) do
+	if vim.fn.filereadable(p) == 1 then
+		path = p
+		break
+	end
+end
 
 local function read()
 	return vim.fn.readfile(path)
