@@ -2,9 +2,10 @@ return {
 	"pojokcodeid/auto-lint.nvim",
 	dependencies = {
 		"mfussenegger/nvim-lint",
-		event = "VeryLazy",
+		event = "BufRead",
 	},
-	event = "VeryLazy",
+	-- event = "VeryLazy",
+	event = "BufRead",
 	opts = function(_, opts)
 		opts.map_lang = opts.map_lang or {}
 		opts.map_name = opts.map_name or {}

@@ -1,6 +1,7 @@
 return {
 	"monkoose/neocodeium",
-	event = "VeryLazy",
+	-- event = "VeryLazy",
+	event = "BufRead",
 	dependencies = { "saghen/blink.cmp" },
 	config = function()
 		local uv = vim.uv
