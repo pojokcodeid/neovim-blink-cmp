@@ -21,7 +21,7 @@ return {
 				show_request_summary = false,
 				-- display mode: possible values: "split", "float"
 				display_mode = "float",
-				default_view = "headers_body",
+				default_view = "body",
 				disable_news_popup = true,
 				win_opts = {
 					title = "Pojok Code",
