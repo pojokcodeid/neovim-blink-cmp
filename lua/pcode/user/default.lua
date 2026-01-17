@@ -31,7 +31,7 @@ pcode.extras = {
 	colorfullblink = true,
 	dap = false,
 	deviconcolor = false,
-	dressing = false,
+	dressing = true,
 	fidget = false,
 	hilightcolor = false,
 	illuminate = false,
@@ -46,7 +46,7 @@ pcode.extras = {
 	nvimufo = false,
 	rainbowdelimiters = false,
 	refactoring = false,
-	rest = false,
+	rest = true,
 	scrollview = false,
 	showkeys = false,
 	smartsplit = false,
@@ -86,11 +86,11 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  dracula = "dracula"
+	dracula = "dracula",
 }
 -- activate config transparent_bg
 -- pcode.transparent=false
-pcode.localcode=false
+pcode.localcode = false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true
 pcode.nvimtree_float = false
