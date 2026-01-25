@@ -317,3 +317,12 @@ end, {})
 vim.keymap.set("", "<C-S-LeftMouse>", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("", "<C-S-LeftDrag>", "<Nop>", { noremap = true, silent = true })
 vim.keymap.set("", "<C-S-LeftRelease>", "<Nop>", { noremap = true, silent = true })
+
+-- set tabsize 4 if file type php
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "javascript", "typescript" },
+	callback = function()
+		vim.opt.tabstop = 4
+		vim.opt.shiftwidth = 4
+	end,
+})
