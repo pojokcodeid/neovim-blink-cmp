@@ -15,7 +15,7 @@ pcode.lang = {
 	prisma = false,
 	python = false,
 	rust = false,
-	sql = false,
+	sql = true,
 	tailwind = false,
 }
 -- activate config extras
@@ -51,7 +51,7 @@ pcode.extras = {
 	rest = true,
 	scrollview = false,
 	showkeys = false,
-	smartsplit = false,
+	smartsplit = true,
 	startuptime = false,
 	telescopediff = false,
 	telescopetreesiterinfo = false,
