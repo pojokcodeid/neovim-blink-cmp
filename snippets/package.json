@@ -4,7 +4,16 @@
       {
         "language": "html",
         "path": "./html/snippets.json"
+      },
+      {
+        "language": "go",
+        "path": "./go/snippets.json"
+      },
+      {
+        "language": "javascript",
+        "path": "./javascript/snippets.json"
       }
     ]
   }
 }
+

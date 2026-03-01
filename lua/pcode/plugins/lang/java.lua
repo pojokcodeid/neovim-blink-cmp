@@ -1,7 +1,7 @@
 local M = {}
 M = {
   {
-    "williamboman/mason-lspconfig.nvim",
+    "mason-org/mason-lspconfig.nvim",
     opts = function(_, opts)
       opts.skip_config = opts.skip_config or {}
       vim.list_extend(opts.skip_config, { "jdtls" })

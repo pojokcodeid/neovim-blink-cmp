@@ -5,7 +5,7 @@ return {
     "MunifTanjim/nui.nvim",
     "neovim/nvim-lspconfig",
     "mfussenegger/nvim-dap",
-    "williamboman/mason.nvim",
+    "mason-org/mason.nvim",
   },
   opts = {
     notifications = {

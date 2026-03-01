@@ -20,7 +20,7 @@ return {
 			vim.g.db_ui_show_help = 0
 		end,
 		keys = {
-			{ "<leader>D", "", desc = " 󰆼 DBUI" },
+			{ "<leader>D", "", desc = "DBUI" },
 			{ "<leader>Dd", "<cmd>Alpha<cr><cmd>NvimTreeClose<cr><cmd>DBUI<cr>", desc = "󰆼 DBUI Open" },
 			{
 				"<leader>Dq",

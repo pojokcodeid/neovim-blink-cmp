@@ -7,7 +7,7 @@ return {
 		end,
 	},
 	{
-		"williamboman/mason-lspconfig.nvim",
+		"mason-org/mason-lspconfig.nvim",
 		opts = function(_, opts)
 			opts.skip_config = opts.skip_config or {}
 			opts.ensure_installed = opts.ensure_installed or {}
@@ -99,7 +99,7 @@ return {
 			"rcarriga/nvim-dap-ui",
 			"theHamsta/nvim-dap-virtual-text",
 			"nvim-neotest/nvim-nio",
-			"williamboman/mason.nvim",
+			"mason-org/mason.nvim",
 			"jay-babu/mason-nvim-dap.nvim",
 		},
 		config = function()

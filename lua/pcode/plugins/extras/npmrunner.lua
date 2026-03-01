@@ -26,7 +26,7 @@ return {
 		},
 	},
 	keys = {
-		{ "<leader>n", "", desc = "  Npm" },
+		{ "<leader>n", "", desc = "Npm" },
 	},
 	config = function(_, opts)
 		require("npm-runner").setup(opts.command, opts.opt)
