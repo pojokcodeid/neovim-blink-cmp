@@ -123,7 +123,8 @@ return {
 				default = { "lsp", "path", "snippets", "buffer" },
 				providers = {},
 			},
-			fuzzy = { implementation = "prefer_rust_with_warning" },
+			-- fuzzy = { implementation = "prefer_rust_with_warning" },
+			fuzzy = { implementation = "lua" },
 		}
 	end,
 	opts_extend = {
