@@ -1,6 +1,6 @@
 return {
 	"nvim-telescope/telescope.nvim",
-	lazy = true,
+	event = "VeryLazy",
 	cmd = "Telescope",
 	version = false,
 	opts = function()
@@ -172,6 +172,40 @@ return {
 				require("telescope").load_extension(ext)
 			end
 		end)
+		-- config for ui select
+		local themes = require("telescope.themes")
+		local pickers = require("telescope.pickers")
+		local finders = require("telescope.finders")
+		local conf = require("telescope.config").values
+
+		vim.ui.select = function(items, opts, on_choice)
+			opts = opts or {}
+			local theme = themes.get_dropdown({}) -- bisa diganti dengan themes.get_cursor atau lain
+			pickers
+				.new(theme, {
+					prompt_title = opts.prompt or "Select Item",
+					finder = finders.new_table({
+						results = items,
+						entry_maker = function(item)
+							return {
+								value = item,
+								display = opts.format_item and opts.format_item(item) or tostring(item),
+								ordinal = tostring(item),
+							}
+						end,
+					}),
+					sorter = conf.generic_sorter(theme),
+					attach_mappings = function(_, map)
+						map("i", "<CR>", function(prompt_bufnr)
+							local selection = require("telescope.actions.state").get_selected_entry()
+							require("telescope.actions").close(prompt_bufnr)
+							on_choice(selection.value)
+						end)
+						return true
+					end,
+				})
+				:find()
+		end
 	end,
 	keys = {
 		{ "<leader>s", "", desc = "Search", mode = "n" },
