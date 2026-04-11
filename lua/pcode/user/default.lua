@@ -43,12 +43,12 @@ pcode.extras = {
 	navic = true,
 	neocodeium = true,
 	neoscroll = false,
-	npmrunner = true,
+	npmrunner = false,
 	nvimmenu = false,
 	nvimufo = false,
 	rainbowdelimiters = false,
 	refactoring = false,
-	rest = true,
+	rest = false,
 	scrollview = false,
 	showkeys = false,
 	smartsplit = true,
@@ -88,7 +88,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-	dracula = "dracula",
+  dracula = "dracula"
 }
 -- activate config transparent_bg
 -- pcode.transparent=false

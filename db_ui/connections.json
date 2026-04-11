@@ -1,6 +1,0 @@
-[
-  {
-    "url": "postgres://root:postgres@localhost:5432/postgres",
-    "name": "postgres"
-  }
-]
