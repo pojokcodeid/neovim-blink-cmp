@@ -15,7 +15,7 @@ pcode.lang = {
 	prisma = false,
 	python = false,
 	rust = false,
-	sql = true,
+	sql = false,
 	tailwind = false,
 }
 -- activate config extras
@@ -27,7 +27,7 @@ pcode.extras = {
 	cheatsheet = false,
 	codeium = false,
 	codeiumnvim = false,
-	coderunner = true,
+	coderunner = false,
 	colorizer = false,
 	colorfullblink = true,
 	dap = false,
@@ -41,7 +41,7 @@ pcode.extras = {
 	lspprogress = false,
 	minianimate = false,
 	navic = true,
-	neocodeium = true,
+	neocodeium = false,
 	neoscroll = false,
 	npmrunner = false,
 	nvimmenu = false,
@@ -88,7 +88,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  dracula = "dracula"
+	dracula = "dracula",
 }
 -- activate config transparent_bg
 -- pcode.transparent=false
