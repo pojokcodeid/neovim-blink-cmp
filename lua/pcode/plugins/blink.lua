@@ -78,6 +78,7 @@ return {
 					-- s → south (bawah)
 					direction_priority = { "s", "n" },
 					border = "rounded",
+					winblend = 0,
 					winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder,CursorLine:CursorLine,Search:None",
 					draw = {
 						padding = 2,
@@ -95,6 +96,7 @@ return {
 					auto_show_delay_ms = 0,
 					window = {
 						border = "rounded",
+						winblend = 0,
 						winhighlight = "Normal:NormalFloat,FloatBorder:FloatBorder,CursorLine:CursorLine,Search:None",
 						-- max_width = 50,
 						-- e → east (kanan kursor)
