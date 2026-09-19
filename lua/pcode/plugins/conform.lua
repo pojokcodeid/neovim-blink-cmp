@@ -28,28 +28,42 @@ return {
 					local notif_ok, notify = pcall(require, "notify")
 					if notif_ok then
 						local spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+						local notif_id
+						local i = 1
+						local timer = vim.loop.new_timer()
+
 						local function show_spinner(msg, duration)
-							duration = duration or 3000 -- default 3 detik
-							local i = 1
-							local notif_id
-							local start_time = vim.loop.now()
+							duration = duration or 3000 -- total durasi spinner berjalan (ms)
 
-							local function update()
-								notif_id = notify(spinner[i] .. " " .. msg, "info", {
-									replace = notif_id,
-									timeout = duration,
-								})
-								i = i % #spinner + 1
-								if vim.loop.now() < start_time + 3000 then
-									vim.defer_fn(update, 100) -- update setiap 100ms
+							timer:start(
+								0,
+								100,
+								vim.schedule_wrap(function()
+									notif_id = notify(spinner[i] .. " " .. msg, "info", {
+										replace = notif_id,
+										timeout = false, -- jangan auto-hilang selagi masih di-update
+									})
+									i = i % #spinner + 1
+								end)
+							)
+
+							vim.defer_fn(function()
+								if not timer:is_closing() then
+									timer:stop()
+									timer:close()
 								end
-							end
-
-							update()
+								if notif_id then
+									notify("✔ " .. msg .. " done", "info", {
+										replace = notif_id,
+										timeout = 1000, -- baru di sini kasih timeout normal
+									})
+								end
+							end, duration)
 						end
-						show_spinner("Formating ...", 100)
+
+						show_spinner("Formatting ...", 1000)
 					else
-						print("Formating ...")
+						print("Formatting ...")
 					end
 
 					return {
