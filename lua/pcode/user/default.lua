@@ -91,7 +91,7 @@ pcode.themes = {
 	dracula = "dracula",
 }
 -- activate config transparent_bg
-pcode.transparent=false
+pcode.transparent=true
 pcode.localcode = false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true

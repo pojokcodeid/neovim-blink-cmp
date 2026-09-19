@@ -6,7 +6,7 @@ return {
 		return {
 			colors = {
 				-- purple = "#FCC76A",
-				menu = colors.bg,
+				menu = pcode.transparent and "NONE" or colors.bg,
 				selection = "#363848",
 			},
 			italic_comment = true,
