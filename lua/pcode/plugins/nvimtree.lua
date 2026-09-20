@@ -133,7 +133,7 @@ if pcode.use_nvimtree then
 				dotfiles = false,
 				git_clean = false,
 				no_buffer = false,
-				custom = { "node_modules", "\\.cache", "\\.git" },
+				custom = { "node_modules", "\\.cache", "\\.git", "\\.DS_Store" },
 				exclude = {
 					".gitignore",
 					".prettierignore",
@@ -325,6 +325,7 @@ else
 					hide_by_name = {
 						".git",
 						"node_modules",
+						".DS_Store",
 					},
 				},
 				follow_current_file = {
