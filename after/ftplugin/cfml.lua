@@ -134,3 +134,11 @@ ls.add_snippets("cfml", {
 		}),
 	}),
 })
+
+ls.add_snippets("cfml", {
+	s("dump", {
+		t("Application.AppObj.SFUtil.SFWRITELOG(dump = {data: "),
+		i(1, "outData"),
+		t("});"),
+	}),
+})
