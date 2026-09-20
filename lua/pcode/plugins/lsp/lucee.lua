@@ -6,6 +6,6 @@ return {
 	cmd = { binary_path },
 	filetypes = { "cfml", "cfscript" },
 	single_file_support = true,
-	root_markers = { "Application.cfc", ".git" },
+	root_markers = { "Application.cfc", ".git", ".vscode" },
 	settings = {},
 }

@@ -17,6 +17,7 @@ pcode.lang = {
 	rust = false,
 	sql = false,
 	tailwind = false,
+	cfformat = true,
 }
 -- activate config extras
 pcode.extras = {
@@ -91,7 +92,7 @@ pcode.themes = {
 	dracula = "dracula",
 }
 -- activate config transparent_bg
-pcode.transparent=true
+pcode.transparent = true
 pcode.localcode = false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true
