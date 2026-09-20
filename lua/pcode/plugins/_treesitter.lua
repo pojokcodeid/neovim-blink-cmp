@@ -82,6 +82,7 @@ return {
 					cfm = "cfml",
 					cfml = "cfml",
 					cfc = "cfml",
+					sfc = "cfml",
 					cfs = "cfscript",
 				},
 			})
