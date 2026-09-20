@@ -1,0 +1,160 @@
+{
+	"component": {
+		"prefix": "component",
+		"body": [
+			"component accessors=\"true\" {",
+			"\t$0",
+			"}"
+		],
+		"description": "CFScript Component definition",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"function": {
+		"prefix": "function",
+		"body": [
+			"${1|public,private,package,remote|} ${2|void,any,string,numeric,boolean,array,struct,query,component|} function ${3:name}($4) {",
+			"\t$0",
+			"}"
+		],
+		"description": "Function definition",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"property": {
+		"prefix": "property",
+		"body": [
+			"property name=\"${1:propertyName}\" type=\"${2|string,numeric,boolean,array,struct,any,date,query|}\" ${3:default=\"\"};"
+		],
+		"description": "Property declaration",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"init": {
+		"prefix": "init",
+		"body": [
+			"public ${1:component} function init($2) {",
+			"\t$0",
+			"\treturn this;",
+			"}"
+		],
+		"description": "Constructor init function",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"if": {
+		"prefix": "if",
+		"body": [
+			"if (${1:condition}) {",
+			"\t$0",
+			"}"
+		],
+		"description": "If statement",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"ifelse": {
+		"prefix": "ifelse",
+		"body": [
+			"if (${1:condition}) {",
+			"\t$2",
+			"} else {",
+			"\t$0",
+			"}"
+		],
+		"description": "If-Else statement",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"trycatch": {
+		"prefix": "trycatch",
+		"body": [
+			"try {",
+			"\t$1",
+			"} catch (${2:any} e) {",
+			"\t$0",
+			"}"
+		],
+		"description": "Try-Catch block",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"forin": {
+		"prefix": "forin",
+		"body": [
+			"for (var ${1:item} in ${2:collection}) {",
+			"\t$0",
+			"}"
+		],
+		"description": "For-In loop (Array/Struct/Query)",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"fori": {
+		"prefix": "fori",
+		"body": [
+			"for (var ${1:i} = 1; ${1:i} <= ${2:arrayLen(arr)}; ${1:i}++) {",
+			"\t$0",
+			"}"
+		],
+		"description": "Standard For loop",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"switch": {
+		"prefix": "switch",
+		"body": [
+			"switch (${1:expression}) {",
+			"\tcase \"${2:value}\":",
+			"\t\t$3",
+			"\t\tbreak;",
+			"\tdefault:",
+			"\t\t$0",
+			"\t\tbreak;",
+			"}"
+		],
+		"description": "Switch-Case statement",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"queryExecute": {
+		"prefix": "queryExecute",
+		"body": [
+			"var ${1:qResult} = queryExecute(",
+			"\t\"${2:SELECT * FROM table WHERE id = :id}\",",
+			"\t{ ${3:id} = { value = ${4:idValue}, cfsqltype = \"${5|cf_sql_integer,cf_sql_varchar,cf_sql_timestamp,cf_sql_bit|}\" } },",
+			"\t{ datasource = \"${6:dsn}\" }",
+			");"
+		],
+		"description": "queryExecute statement",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"writeDump": {
+		"prefix": "dump",
+		"body": [
+			"writeDump(var=${1:var}, abort=${2|true,false|});"
+		],
+		"description": "writeDump helper",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"writeOutput": {
+		"prefix": "out",
+		"body": [
+			"writeOutput($0);"
+		],
+		"description": "writeOutput helper",
+		"scope": "cfml",
+		"context": "script"
+	},
+	"param": {
+		"prefix": "param",
+		"body": [
+			"param name=\"${1:args.name}\" type=\"${2|string,numeric,boolean,array,struct,any|}\" default=\"${3:default}\";"
+		],
+		"description": "Param declaration",
+		"scope": "cfml",
+		"context": "script"
+	}
+}
