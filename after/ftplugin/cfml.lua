@@ -14,6 +14,40 @@ vim.bo.tabstop = 4
 vim.bo.cinoptions = "{0,}0,j1,J1"
 vim.bo.cinwords = "component,function,if,else,for,while,switch,try,catch"
 
+-- config for comment string
+local ext = vim.fn.expand("%:e")
+
+if ext == "cfm" then
+	vim.bo.commentstring = "<!--- %s --->"
+else
+	vim.bo.commentstring = "// %s" -- cfc, sfc
+end
+
+local comment_ft = require("Comment.ft")
+
+-- Daftarkan commentstring linewise & blockwise khusus per filetype
+-- Comment.ft.set(filetype, { linewise, blockwise })
+comment_ft.set("cfml", { "// %s", "/* %s */" }) -- default untuk .cfc/.sfc
+
+require("Comment").setup({
+	pre_hook = function(ctx)
+		local ext = vim.fn.expand("%:e")
+		local U = require("Comment.utils")
+
+		if ext == "cfm" then
+			-- .cfm selalu pakai gaya tag, linewise & blockwise sama saja
+			return "<!--- %s --->"
+		end
+
+		-- .cfc / .sfc → cfscript
+		if ctx.ctype == U.ctype.linewise then
+			return "// %s"
+		else
+			return "/* %s */"
+		end
+	end,
+})
+
 -- config for snippets
 local ls = require("luasnip")
 
