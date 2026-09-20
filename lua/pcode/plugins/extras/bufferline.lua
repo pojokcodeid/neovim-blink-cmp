@@ -75,7 +75,7 @@ return {
 				},
 				{
 					text = function(buffer)
-						return truncate_text(buffer.filename, 15) .. " "
+						return truncate_text(buffer.filename, 25) .. " "
 					end,
 					style = function(buffer)
 						return buffer.is_focused and "bold" or nil
