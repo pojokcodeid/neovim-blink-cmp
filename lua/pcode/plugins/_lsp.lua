@@ -73,6 +73,7 @@ return {
 			require("mason-lspconfig").setup(opts)
 			local option = {}
 			local installed_servers = require("mason-lspconfig").get_installed_servers()
+			vim.list_extend(installed_servers, { "lucee" })
 			vim.diagnostic.config({ virtual_lines = { current_line = true } })
 			vim.diagnostic.config({
 				underline = false,

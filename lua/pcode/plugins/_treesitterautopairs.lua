@@ -23,6 +23,22 @@ return {
 		},
 	},
 	config = function(_, opts)
-		require("nvim-autopairs").setup(opts)
+		local npairs = require("nvim-autopairs")
+		npairs.setup(opts)
+
+		local Rule = require("nvim-autopairs.rule")
+		local cond = require("nvim-autopairs.conds")
+
+		-- Aturan spasi otomatis di dalam kurung { | }
+		npairs.add_rules({
+			Rule(" ", " ")
+				:with_pair(function(options)
+					local pair = options.line:sub(options.col - 1, options.col)
+					return vim.tbl_contains({ "{}", "()", "[]" }, pair)
+				end)
+				:with_move(cond.none())
+				:with_cr(cond.none())
+				:with_del(cond.none()),
+		})
 	end,
 }

@@ -26,6 +26,7 @@ return {
 				["@keyword.css"] = { fg = colors.fg },
 				["@string.css"] = { fg = colors.pink },
 				["@punctuation.delimiter.lua"] = { fg = colors.orange },
+				["@variable.cfscript"] = { fg = colors.orange },
 				NvimTreeFolderIcon = { fg = "#6776a7" },
 				NeoTreeDirectoryIcon = { fg = "#6776a7" },
 				CmpItemAbbr = { fg = "#ABB2BF" },

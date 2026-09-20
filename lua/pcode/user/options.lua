@@ -42,3 +42,13 @@ local options = {
 for k, v in pairs(options) do
 	vim.opt[k] = v
 end
+
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "cfc", "cfm" },
+	callback = function()
+		vim.opt.cindent = true
+		vim.opt.expandtab = true
+		vim.opt.shiftwidth = 4
+		vim.opt.tabstop = 4
+	end,
+})
