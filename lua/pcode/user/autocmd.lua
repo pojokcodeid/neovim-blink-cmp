@@ -557,3 +557,70 @@ end
 
 -- Create command
 vim.api.nvim_create_user_command("LspInfo", lsp_info, { desc = "Show comprehensive LSP information" })
+
+local function cflint_check()
+	local file = vim.api.nvim_buf_get_name(0)
+	if file == "" then
+		print("Buffer belum punya file yang tersimpan.")
+		return
+	end
+
+	local dir = vim.fn.fnamemodify(file, ":h")
+	local filename = vim.fn.fnamemodify(file, ":t")
+
+	local cmd = { "box", "cflint", "pattern=" .. filename, "reportLevel=ERROR" }
+	local output_lines = {}
+
+	local job_id = vim.fn.jobstart(cmd, {
+		cwd = dir,
+		stdout_buffered = true,
+		stderr_buffered = true,
+		on_stdout = function(_, data)
+			if data then
+				vim.list_extend(output_lines, data)
+			end
+		end,
+		on_stderr = function(_, data)
+			if data then
+				vim.list_extend(output_lines, data)
+			end
+		end,
+		on_exit = function()
+			local raw = table.concat(output_lines, "\n"):gsub("\27%[[%d;]*m", "")
+
+			local qf_items = {}
+			for line in raw:gmatch("[^\r\n]+") do
+				local sev, code, msg, lnum, col = line:match("^%s*(%u+):%s*([%u_]+),%s*(.-)%s*%[(%d+),(%d+)%]%s*$")
+				if sev then
+					table.insert(qf_items, {
+						filename = file,
+						lnum = tonumber(lnum),
+						col = tonumber(col),
+						text = string.format("[%s] %s (%s)", sev, msg, code),
+						type = "E",
+					})
+				end
+			end
+
+			vim.schedule(function()
+				vim.fn.setqflist(qf_items, "r")
+				vim.fn.setqflist({}, "a", { title = "CFLint - " .. filename })
+				if #qf_items > 0 then
+					vim.cmd("copen")
+				else
+					vim.notify("CFLint: tidak ada error ditemukan.", vim.log.levels.INFO)
+				end
+			end)
+		end,
+	})
+
+	if job_id <= 0 then
+		vim.notify("Gagal menjalankan job cflint! job_id=" .. job_id, vim.log.levels.ERROR)
+		return
+	end
+
+	vim.fn.chanclose(job_id, "stdin")
+	vim.notify("Menjalankan CFLint...", vim.log.levels.INFO)
+end
+
+vim.api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan box cflint untuk file aktif" })
