@@ -116,6 +116,8 @@ vim.keymap.set("i", ">", cfml_auto_close_on_gt, {
 
 ------------------------------------------------------------
 -- Expand: Enter di antara tag pembuka & penutup -> jadi 3 baris
+-- (untuk kasus lain, serahkan ke nvim-autopairs supaya behavior
+--  expand {}, (), [] bawaan plugin tetap jalan)
 ------------------------------------------------------------
 local function cfml_expand_on_cr()
 	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
@@ -145,8 +147,13 @@ local function cfml_expand_on_cr()
 
 		vim.api.nvim_win_set_cursor(0, { row + 1, #middle_indent })
 	else
-		local keys = vim.api.nvim_replace_termcodes("<CR>", true, false, true)
-		vim.api.nvim_feedkeys(keys, "n", false)
+		local ok, npairs = pcall(require, "nvim-autopairs")
+		if ok and npairs.autopairs_cr then
+			vim.api.nvim_feedkeys(npairs.autopairs_cr(), "n", false)
+		else
+			local keys = vim.api.nvim_replace_termcodes("<CR>", true, false, true)
+			vim.api.nvim_feedkeys(keys, "n", false)
+		end
 	end
 end
 
@@ -154,6 +161,152 @@ vim.keymap.set("i", "<CR>", cfml_expand_on_cr, {
 	buffer = true,
 	desc = "Expand CFML tag block on Enter",
 })
+
+--[[ -- ~/.config/nvim/after/ftplugin/cfml.lua
+-- Breadcrumb manual untuk CFML via LSP documentSymbol (bukan nvim-navic)
+--
+-- Alasan tidak pakai nvim-navic:
+-- - documentSymbol dari cfmleditor-lsp mengembalikan range zero-width
+--   (start == end), jadi nvim-navic tidak bisa deteksi "cursor di dalam
+--   function ini" kecuali cursor persis di baris deklarasi.
+-- - grammar tree-sitter-cfml belum granular untuk cfscript (function-function
+--   di dalam component cuma satu node flat "cf_component_content"), jadi
+--   pendekatan breadcrumb berbasis treesitter murni juga tidak bisa dipakai.
+--
+-- Solusi: ambil daftar function dari LSP documentSymbol (baris deklarasinya
+-- akurat walau range-nya tidak), lalu cari function dengan baris deklarasi
+-- terdekat SEBELUM posisi cursor. Nama component diambil dari nama file,
+-- karena di CFML nama component = nama file (dan cfmleditor-lsp tidak
+-- mengembalikan component sebagai symbol tersendiri).
+
+local cfml_symbols_cache = {}
+
+------------------------------------------------------------
+-- Ambil documentSymbol dari LSP client "cfml", simpan ke cache
+------------------------------------------------------------
+local function cfml_refresh_symbols()
+	local bufnr = vim.api.nvim_get_current_buf()
+	local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "cfml" })
+	if #clients == 0 then
+		return
+	end
+
+	local params = { textDocument = vim.lsp.util.make_text_document_params(bufnr) }
+	clients[1].request("textDocument/documentSymbol", params, function(err, result)
+		if err or not result then
+			return
+		end
+
+		-- flatten (component tidak masuk sebagai symbol, jadi ini cuma function/method)
+		local flat = {}
+		local function walk(list)
+			for _, sym in ipairs(list) do
+				table.insert(flat, {
+					name = sym.name,
+					kind = sym.kind,
+					line = sym.range and sym.range.start.line or 0,
+				})
+				if sym.children then
+					walk(sym.children)
+				end
+			end
+		end
+		walk(result)
+
+		table.sort(flat, function(a, b)
+			return a.line < b.line
+		end)
+
+		cfml_symbols_cache[bufnr] = flat
+	end, bufnr)
+end
+
+------------------------------------------------------------
+-- Refresh throttled/debounced: dipanggil tiap TextChanged,
+-- tapi request LSP baru dikirim 500ms setelah berhenti mengetik
+------------------------------------------------------------
+local cfml_refresh_timer = nil
+
+local function cfml_refresh_symbols_throttled()
+	if cfml_refresh_timer then
+		cfml_refresh_timer:stop()
+		cfml_refresh_timer:close()
+	end
+	cfml_refresh_timer = vim.defer_fn(function()
+		cfml_refresh_symbols()
+		cfml_refresh_timer = nil
+	end, 500)
+end
+
+------------------------------------------------------------
+-- Susun teks breadcrumb berdasarkan posisi cursor sekarang
+------------------------------------------------------------
+local function cfml_breadcrumb()
+	local bufnr = vim.api.nvim_get_current_buf()
+	local parts = {}
+
+	-- Nama component = nama file (konvensi CFML)
+	local component_name = vim.fn.expand("%:t:r")
+	if component_name ~= "" then
+		table.insert(parts, "  " .. component_name)
+	end
+
+	local symbols = cfml_symbols_cache[bufnr]
+	if symbols and #symbols > 0 then
+		local cursor_line = vim.api.nvim_win_get_cursor(0)[1] - 1 -- 0-indexed
+		local function_name
+
+		for _, sym in ipairs(symbols) do
+			if sym.line <= cursor_line then
+				if sym.kind == 12 or sym.kind == 6 then -- Function / Method
+					function_name = sym.name
+				end
+			else
+				break
+			end
+		end
+
+		if function_name then
+			table.insert(parts, "󰊕 " .. function_name)
+		end
+	end
+
+	return table.concat(parts, " > ")
+end
+
+------------------------------------------------------------
+-- Autocmd: refresh cache symbol
+------------------------------------------------------------
+vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "LspAttach" }, {
+	buffer = 0,
+	callback = function()
+		vim.defer_fn(cfml_refresh_symbols, 300)
+	end,
+})
+
+vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "InsertLeave" }, {
+	buffer = 0,
+	callback = cfml_refresh_symbols_throttled,
+})
+
+------------------------------------------------------------
+-- Autocmd: update tampilan winbar saat cursor pindah
+------------------------------------------------------------
+vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+	buffer = 0,
+	callback = function()
+		local crumb = cfml_breadcrumb()
+		vim.wo.winbar = crumb ~= "" and crumb or ""
+	end,
+})
+
+------------------------------------------------------------
+-- Command manual untuk tes cepat
+------------------------------------------------------------
+vim.api.nvim_buf_create_user_command(0, "CfmlBreadcrumb", function()
+	print(cfml_breadcrumb())
+end, { desc = "Tampilkan breadcrumb CFML (via LSP documentSymbol)" })
+ ]]
 
 -- config for snippets
 local ls = require("luasnip")
@@ -211,7 +364,7 @@ ls.add_snippets("cfml", {
 		i(2, "parameter"),
 		t({ ") {", "" }),
 
-		t('    _objectChange("READ");'),
+		t('    _objChange("READ");'),
 
 		t({ "", "    " }),
 		i(3),
