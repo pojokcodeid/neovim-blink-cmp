@@ -196,6 +196,26 @@ if pcode.use_nvimtree then
 			api.events.subscribe(api.events.Event.FileCreated, function(file)
 				vim.cmd("edit " .. file.fname)
 			end)
+
+			local api = require("nvim-tree.api")
+
+			local nvim_tree_events = vim.api.nvim_create_augroup("NvimTreeGitRefresh", { clear = true })
+
+			-- Refresh tanda Git setiap kali Anda kembali fokus ke Neovim (setelah dari terminal luar)
+			vim.api.nvim_create_autocmd("FocusGained", {
+				group = nvim_tree_events,
+				callback = function()
+					api.git.reload()
+				end,
+			})
+
+			-- Refresh tanda Git setelah Anda menutup terminal bawaan Neovim / LazyGit
+			vim.api.nvim_create_autocmd("TermClose", {
+				group = nvim_tree_events,
+				callback = function()
+					api.git.reload()
+				end,
+			})
 		end,
 	}
 else
