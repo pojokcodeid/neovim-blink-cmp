@@ -5,7 +5,7 @@ return {
 	opts = function()
 		local truncate_text = function(text, max_length)
 			if #text > max_length then
-				local first_text = text:sub(1, 5)
+				local first_text = text:sub(1, max_length - 10)
 				local end_text = text:sub(#text - 7, #text)
 				return first_text .. "..." .. end_text
 			else
@@ -75,7 +75,7 @@ return {
 				},
 				{
 					text = function(buffer)
-						return truncate_text(buffer.filename, 25) .. " "
+						return truncate_text(buffer.filename, 22) .. " "
 					end,
 					style = function(buffer)
 						return buffer.is_focused and "bold" or nil
