@@ -118,3 +118,63 @@ keymap("v", ">", ">gv", opts)
 
 -- ALT + l to open terminal and run live-server
 keymap("n", "<A-l>", "<cmd>terminal live-server<cr>", opts)
+
+local function replace_selected_text()
+	local mode = vim.fn.mode()
+	if mode ~= "v" and mode ~= "V" and mode ~= "\22" then
+		vim.notify("Blok teks dulu (visual mode) sebelum menekan Ctrl+H", vim.log.levels.WARN)
+		return
+	end
+
+	vim.cmd('normal! "vy')
+	local selected = vim.fn.getreg("v")
+
+	if not selected or selected == "" then
+		return
+	end
+
+	local function escape_pattern(str)
+		return (str:gsub("[%^%$%.%*%~%[%]/\\]", "\\%0"))
+	end
+
+	local escaped_selected = escape_pattern(selected)
+
+	-- Step 1: pilih case sensitive atau tidak
+	vim.ui.select(
+		{ "Case sensitive", "Case insensitive" },
+		{ prompt = "Mode pencarian untuk '" .. selected .. "':" },
+		function(choice)
+			if not choice then
+				return -- user cancel
+			end
+
+			local case_flag = (choice == "Case sensitive") and "\\C" or "\\c"
+
+			-- Step 2: input teks pengganti
+			vim.ui.input({ prompt = "Ganti '" .. selected .. "' dengan (" .. choice .. "): " }, function(replacement)
+				if replacement == nil then
+					return
+				end
+
+				local escaped_replacement = replacement:gsub("[&\\]", "\\%0")
+
+				local ok, err = pcall(function()
+					vim.cmd(string.format("%%s/%s%s/%s/g", escaped_selected, case_flag, escaped_replacement))
+				end)
+
+				if ok then
+					vim.notify("Replace selesai (" .. choice .. ").", vim.log.levels.INFO)
+				else
+					vim.notify("Gagal replace: " .. tostring(err), vim.log.levels.ERROR)
+				end
+			end)
+		end
+	)
+end
+
+vim.keymap.set(
+	"v",
+	"<C-h>",
+	replace_selected_text,
+	{ desc = "Replace all: teks terpilih -> input baru (dengan opsi case)" }
+)
