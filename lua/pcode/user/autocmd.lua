@@ -624,3 +624,15 @@ local function cflint_check()
 end
 
 vim.api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan box cflint untuk file aktif" })
+
+vim.api.nvim_create_autocmd("TermClose", {
+	pattern = "*lazygit*", -- cocok dengan nama buffer terminal lazygit
+	callback = function()
+		local ok, api = pcall(require, "nvim-tree.api")
+		if ok and api.tree.is_visible() then
+			vim.defer_fn(function()
+				api.tree.reload()
+			end, 100)
+		end
+	end,
+})
