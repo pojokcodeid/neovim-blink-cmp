@@ -133,7 +133,13 @@ if pcode.use_nvimtree then
 				dotfiles = false,
 				git_clean = false,
 				no_buffer = false,
-				custom = { "node_modules", "\\.cache", "\\.git", "\\.DS_Store" },
+				custom = {
+					"node_modules",
+					"\\.cache",
+					"\\.git",
+					"\\.DS_Store",
+					"^\\.conform\\.",
+				},
 				exclude = {
 					".gitignore",
 					".prettierignore",
