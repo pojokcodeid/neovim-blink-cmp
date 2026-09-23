@@ -9,6 +9,11 @@ return {
 		preserve_cursor_position = {
 			enabled = false,
 		},
+		highlight = {
+			on_put = true,
+			on_yank = true,
+			timer = 250, -- durasi flash dalam ms, boleh disesuaikan
+		},
 	},
 	config = function(_, opts)
 		require("yanky").setup(opts)

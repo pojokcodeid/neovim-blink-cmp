@@ -413,7 +413,7 @@ ls.add_snippets("cfml", {
 		i(4, "coid"),
 
 		t({
-			":{value:request.cookie.",
+			":{value:REQUEST.SCookie.",
 		}),
 
 		i(5, "coid"),
@@ -421,9 +421,7 @@ ls.add_snippets("cfml", {
 		t({
 			',sqltype:"cf_sql_integer"}',
 			"    },",
-			"    {",
-			"        datasource:request.sdsn",
-			"    }",
+			"    { datasource:REQUEST.SDSN }",
 			");",
 		}),
 	}),
