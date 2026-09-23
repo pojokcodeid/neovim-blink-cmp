@@ -44,6 +44,11 @@ if pcode.use_nvimtree then
 				enable = true,
 				update_root = false,
 			}
+			opts.actions = {
+				open_file = {
+					resize_window = false,
+				},
+			}
 			opts.view = {
 				adaptive_size = false,
 				centralize_selection = true,
