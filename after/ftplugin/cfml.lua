@@ -308,6 +308,11 @@ vim.api.nvim_buf_create_user_command(0, "CfmlBreadcrumb", function()
 end, { desc = "Tampilkan breadcrumb CFML (via LSP documentSymbol)" })
  ]]
 
+-- cegah snippet load berkali-kali
+if vim.g.loaded_cfml_snippets then
+	return
+end
+vim.g.loaded_cfml_snippets = true
 -- config for snippets
 local ls = require("luasnip")
 
@@ -432,5 +437,94 @@ ls.add_snippets("cfml", {
 		t("Application.AppObj.SFUtil.SFWRITELOG(dump = {data: "),
 		i(1, "outData"),
 		t("});"),
+	}),
+})
+
+ls.add_snippets("cfml", {
+	s("initUploadProcess", {
+		t({
+			[[public any function initUpload(struct argEntries) {]],
+			[[    _ObjChange("EDIT");]],
+			[[    // code mulai dari sini]],
+			[[    var bBckGround = argEntries.keyExists("isbackground") ? argEntries.isbackground : 0;]],
+			[[    var scheduledate = argEntries.keyExists("isbackground") ? (]],
+			[[        argEntries.keyExists("scheduledate") ? argEntries.scheduledate : now()]],
+			[[    ) : "";]],
+			[[    var blogProc = 1;]],
+			[[    var procCode = "ROVT#REQUEST.SCookie.User.uid##dateFormat(now(), "yyyymmdd")##timeFormat(now(), "hhmmss")#";]],
+			[[    var procFunc = "qlid=CL_OvertimeReport.processPerData||lastFuncName";]],
+			"",
+			[[    Application.APPOBJ.SFProcess.InitAttribute({processName: "Overtime Report Process", processModule: "Attendance"});]],
+			[[    var retData = Application.APPOBJ.SFProcess.InitProcess(]],
+			[[        procCode,]],
+			[[        procFunc,]],
+			[[        qData,]],
+			[[        "",]],
+			[[        "",]],
+			[[        bBckGround,]],
+			[[        scheduledate,]],
+			[[        1,]],
+			[[        "emp_name"]],
+			[[    );]],
+			[[    retData.apidirection = "qlid=CL_OvertimeReport.uploadProcess";]],
+			[[    return retData;]],
+			[[}]],
+			"",
+			[[public any function lastFuncName(query theQuery) {]],
+			[[    try {]],
+			[[        // code here]],
+			[[        return true;]],
+			[[    } catch (e) {]],
+			[[        Application.AppObj.SFUtil.SFWRITELOG(dump = {exception: e});]],
+			[[        return false;]],
+			[[    }]],
+			[[}]],
+			"",
+			[[public any function uploadProcess(struct argEntries) {]],
+			[[    _ObjChange("EDIT");]],
+			[[    if (isDefined("argEntries.payload")) {]],
+			[[        scPassData = deserializeJSON(arguments.argEntries.payload);]],
+			[[    } else if (isStruct(argEntries)) {]],
+			[[        scPassData = argEntries;]],
+			[[    } else {]],
+			[[        return {HSTATUS: 400, MESSAGE: "Invalid passing form or payload"};]],
+			[[    }]],
+			"",
+			[[    scPassData.maxprocess = 5;]],
+			[[    var retData = Application.APPOBJ.SFProcess.runProcess(argumentcollection = scPassData);]],
+			[[    retData.apidirection = "qlid=CL_OvertimeReport.uploadProcess";]],
+			[[    return retData;]],
+			[[}]],
+			"",
+			[[public any function processPerData(string processCode, numeric currow, query qData) {]],
+			[[    try {]],
+			[[        // code here]],
+			[[    } catch (any e) {]],
+			[[        LOCAL.pathlog = Application.AppObj.SFUtil.SFWRITELOG(dump = {catch: e});]],
+			[[        LOCAL.empName = qData.emp_name[currow];]],
+			[[        Application.APPOBJ.SFProcess.AddFailure(]],
+			[[            Arguments.processcode,]],
+			[[            Arguments.rowData.seq_id,]],
+			[[            "Error Overtime Report For : " & LOCAL.empName,]],
+			[[            "#LOCAL.pathlog#"]],
+			[[        );]],
+			[[        return false;]],
+			[[    }]],
+			[[    return true;]],
+			[[}]],
+		}),
+
+		i(0),
+	}),
+
+	s("testFunction", {
+		t({
+			[[function test() {]],
+			[[    this._ObjChange("READ");]],
+			[[    return {status: true, message: "Message Ok !"}]],
+			[[}]],
+		}),
+
+		i(0),
 	}),
 })
