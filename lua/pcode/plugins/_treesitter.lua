@@ -1,77 +1,97 @@
 return {
-	{ "nvim-lua/plenary.nvim", event = "VeryLazy" },
 	{
 		"nvim-treesitter/nvim-treesitter",
-		event = { "BufRead", "BufNewFile" },
-		version = false,
-		branch = "master", -- sementara sampai stabil
+		branch = "main",
+		lazy = false, -- branch main TIDAK mendukung lazy-loading
 		build = ":TSUpdate",
-		lazy = true,
-		cmd = {
-			"TSInstall",
-			"TSInstallSync",
-			"TSUpdate",
-			"TSUpdateSync",
-			"TSUninstall",
-			"TSUninstallInfo",
-			"TSInstallFromGrammar",
-		},
-		opts = function()
-			return {
-				highlight = { enable = true },
-				indent = { enable = true, disable = { "cfml", "cfscript", "cfc", "cfm" } },
-				ensure_installed = { "lua", "luadoc", "printf", "vim", "vimdoc" },
-				incremental_selection = {
-					enable = true,
-				},
-				autopairs = {
-					enable = true,
-				},
-			}
-		end,
-		config = function(_, opts)
-			-- daftarkan parser custom CFML SEBELUM .setup() dipanggil
-			local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
+		config = function()
+			-- daftarkan parser custom CFML SEBELUM :TSUpdate dipanggil
+			vim.api.nvim_create_autocmd("User", {
+				pattern = "TSUpdate",
+				callback = function()
+					local parsers = require("nvim-treesitter.parsers")
 
-			parser_config.cfml = {
-				install_info = {
-					url = "https://github.com/cfmleditor/tree-sitter-cfml",
-					location = "cfml",
-					files = { "src/parser.c", "src/scanner.c" },
-					branch = "master",
-				},
-				requires_generate_from_grammar = false,
-				filetype = "cfml",
+					parsers.cfml = {
+						install_info = {
+							url = "https://github.com/cfmleditor/tree-sitter-cfml",
+							location = "cfml",
+							files = { "src/parser.c", "src/scanner.c" },
+							branch = "master",
+						},
+					}
+
+					parsers.cfscript = {
+						install_info = {
+							url = "https://github.com/cfmleditor/tree-sitter-cfml",
+							location = "cfscript",
+							files = { "src/parser.c", "src/scanner.c" },
+							branch = "master",
+						},
+					}
+				end,
+			})
+
+			require("nvim-treesitter").setup({})
+
+			-- install parser yang dibutuhkan
+			require("nvim-treesitter").install({
+				"lua",
+				"luadoc",
+				"printf",
+				"vim",
+				"vimdoc",
+				"javascript",
+				"typescript",
+				"tsx",
+				"html",
+				"cfml",
+				"cfscript",
+			})
+
+			local ts_filetypes = {
+				"lua",
+				"vim",
+				"vimdoc",
+				"javascript",
+				"typescript",
+				"typescriptreact",
+				"javascriptreact",
+				"html",
+				"cfml",
+				"cfscript",
 			}
 
-			parser_config.cfscript = {
-				install_info = {
-					url = "https://github.com/cfmleditor/tree-sitter-cfml",
-					location = "cfscript",
-					files = { "src/parser.c", "src/scanner.c" },
-					branch = "master",
-				},
-				requires_generate_from_grammar = false,
-				filetype = "cfscript",
-			}
-			if type(opts.ensure_installed) == "table" then
-				---@type table<string, boolean>
-				local added = {}
-				opts.ensure_installed = vim.tbl_filter(function(lang)
-					if added[lang] then
-						return false
-					end
-					added[lang] = true
-					return true
-				end, opts.ensure_installed)
-			end
-			require("nvim-treesitter.configs").setup(opts)
+			-- highlight
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = ts_filetypes,
+				callback = function()
+					pcall(vim.treesitter.start)
+				end,
+			})
+
+			-- indent
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = ts_filetypes,
+				callback = function()
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				end,
+			})
+
+			-- fold
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = ts_filetypes,
+				callback = function()
+					vim.wo[0][0].foldexpr = "v:lua.vim.treesitter.foldexpr()"
+					vim.wo[0][0].foldmethod = "expr"
+				end,
+			})
+
 			vim.api.nvim_create_user_command("TSInstallInfo", function()
 				vim.cmd("Telescope treesitter_info")
 			end, {})
 		end,
 	},
-	-- filetype detection CFML — plugin terpisah, dieksekusi paling awal
+	-- filetype detection CFML
 	{
 		"nvim-lua/plenary.nvim",
 		lazy = false,
