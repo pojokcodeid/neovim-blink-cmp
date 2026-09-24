@@ -527,4 +527,14 @@ ls.add_snippets("cfml", {
 
 		i(0),
 	}),
+
+	s("remark", {
+		t({ "/**", " * add by akn " }),
+		f(function()
+			return os.date("%Y%m%d %H:%M")
+		end, {}),
+		t({ "", " * " }),
+		i(0),
+		t({ "", " */" }),
+	}),
 })
