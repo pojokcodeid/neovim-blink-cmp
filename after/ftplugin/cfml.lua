@@ -308,6 +308,8 @@ vim.api.nvim_buf_create_user_command(0, "CfmlBreadcrumb", function()
 end, { desc = "Tampilkan breadcrumb CFML (via LSP documentSymbol)" })
  ]]
 
+-- config untuk menjalankan commandbox
+require("pcode.user.boxrun")
 -- cegah snippet load berkali-kali
 if vim.g.loaded_cfml_snippets then
 	return
