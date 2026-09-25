@@ -10,6 +10,11 @@ vim.bo.expandtab = true
 vim.bo.shiftwidth = 4
 vim.bo.tabstop = 4
 
+vim.bo.autoindent = true
+vim.bo.indentexpr = ""
+-- hapus trigger '0#' (yang bikin '#' dipaksa ke kolom 0) dari indentkeys
+vim.bo.cinkeys = vim.bo.cinkeys:gsub(",?0#", "")
+
 -- Align kurung kurawal { } & pemicu kata kunci
 vim.bo.cinoptions = "{0,}0,j1,J1"
 vim.bo.cinwords = "component,function,if,else,for,while,switch,try,catch"
