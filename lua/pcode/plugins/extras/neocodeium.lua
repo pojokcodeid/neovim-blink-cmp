@@ -3,55 +3,34 @@ return {
 	event = "VeryLazy",
 	dependencies = { "saghen/blink.cmp" },
 	config = function()
-		local uv = vim.uv
-		local fn = vim.fn
-		local pummenu_timer = assert(uv.new_timer())
 		local neocodeium = require("neocodeium")
-		local renderer = require("neocodeium.renderer")
-		local completer = require("neocodeium.completer")
-		local function is_noselect()
-			local completeopt = vim.o.completeopt
-			return completeopt:find("noselect") and -1 or 0
-		end
-
-		local default_selected_compl = is_noselect()
-		local selected_compl = default_selected_compl
 		local blink = require("blink.cmp")
 
+		-- Konfigurasi Neocodeium & integrasi Blink CMP
+		neocodeium.setup({
+			-- Mencegah Neocodeium tampil saat popup blink.cmp sedang aktif
+			filter = function()
+				return not blink.is_visible()
+			end,
+			-- Penanganan marker agar aman di Neovim 0.12 (Nightly)
+			root_dir = function(bufnr)
+				return vim.fs.root(bufnr, { ".git", "package.json", "Makefile", "Cargo.toml", "go.mod" })
+			end,
+		})
+
+		-- Bersihkan saran Neocodeium saat menu Blink CMP terbuka
 		vim.api.nvim_create_autocmd("User", {
-			pattern = "BlinkCmpMenu*",
+			pattern = "BlinkCmpMenuOpen",
 			callback = function()
 				neocodeium.clear()
 			end,
 		})
 
-		neocodeium.setup({
-			filter = function()
-				return not blink.is_visible()
-			end,
-		})
-
+		-- Picu ulang saran Neocodeium saat menu Blink CMP ditutup
 		vim.api.nvim_create_autocmd("User", {
 			pattern = "BlinkCmpMenuClose",
 			callback = function()
-				local cur_selected = fn.complete_info({ "selected" }).selected
-				if selected_compl == cur_selected then
-					completer:initiate()
-				else
-					selected_compl = cur_selected
-					completer:clear(true)
-					renderer:display_label()
-					pummenu_timer:stop()
-					pummenu_timer:start(
-						400,
-						0,
-						vim.schedule_wrap(function()
-							if fn.pumvisible() == 1 then
-								completer:initiate()
-							end
-						end)
-					)
-				end
+				neocodeium.cycle_or_complete()
 			end,
 		})
 
@@ -59,11 +38,21 @@ return {
 		-- Keymaps
 		-- =========================
 		vim.keymap.set("i", "<C-g>", neocodeium.accept, { desc = "Codeium Accept" })
+		vim.keymap.set("i", "<C-S-g>", neocodeium.accept, { desc = "Codeium Accept" })
 		vim.keymap.set("i", "<C-x>", neocodeium.clear, { desc = "Codeium Clear" })
+		vim.keymap.set("i", "<C-S-x>", neocodeium.clear, { desc = "Codeium Clear" })
 		vim.keymap.set("i", "<C-Up>", function()
 			neocodeium.cycle(-1)
-		end)
-		vim.keymap.set("i", "<C-Down>", neocodeium.cycle)
+		end, { desc = "Codeium Cycle Prev" })
+		vim.keymap.set("i", "<C-Down>", function()
+			neocodeium.cycle(1)
+		end, { desc = "Codeium Cycle Next" })
+		vim.keymap.set("i", "<C-S-Up>", function()
+			neocodeium.cycle(-1)
+		end, { desc = "Codeium Cycle Prev" })
+		vim.keymap.set("i", "<C-S-Down>", function()
+			neocodeium.cycle(1)
+		end, { desc = "Codeium Cycle Next" })
 
 		-- =========================
 		-- Commands
