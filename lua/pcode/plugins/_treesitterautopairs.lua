@@ -40,5 +40,16 @@ return {
 				:with_cr(cond.none())
 				:with_del(cond.none()),
 		})
+
+		-- Auto-close # untuk interpolasi variabel CFML: #variable#
+		npairs.add_rules({
+			Rule("#", "#", { "cfml", "cfscript" })
+				:with_pair(cond.not_after_regex("%#")) -- jangan pair kalau sebelumnya sudah ada #
+				:with_move(function(o)
+					return o.char == "#"
+				end)
+				:with_del(cond.not_after_regex("^$"))
+				:with_cr(cond.none()),
+		})
 	end,
 }
