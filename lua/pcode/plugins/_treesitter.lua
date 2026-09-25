@@ -46,6 +46,7 @@ return {
 				"html",
 				"cfml",
 				"cfscript",
+				"sql",
 			})
 
 			local ts_filetypes = {
@@ -59,6 +60,20 @@ return {
 				"html",
 				"cfml",
 				"cfscript",
+				"sql",
+			}
+
+			-- filetype yang PUNYA query indent lengkap (bukan cfml/cfscript)
+			local ts_indent_filetypes = {
+				"lua",
+				"vim",
+				"vimdoc",
+				"javascript",
+				"typescript",
+				"typescriptreact",
+				"javascriptreact",
+				"html",
+				"sql",
 			}
 
 			-- highlight
@@ -71,9 +86,18 @@ return {
 
 			-- indent
 			vim.api.nvim_create_autocmd("FileType", {
-				pattern = ts_filetypes,
+				pattern = ts_indent_filetypes,
 				callback = function()
 					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				end,
+			})
+
+			-- untuk cfml/cfscript, pastikan pakai autoindent bawaan Vim
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = { "cfml", "cfscript" },
+				callback = function()
+					vim.bo.autoindent = true
+					vim.bo.indentexpr = "" -- kosongkan, biar fallback ke autoindent biasa
 				end,
 			})
 
