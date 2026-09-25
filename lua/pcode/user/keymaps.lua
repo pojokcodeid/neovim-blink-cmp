@@ -47,7 +47,7 @@ end, opts)
 
 -- create comment CTRL + / normal mode
 keymap("i", "<C-_>", function()
-	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<esc>", true, false, true), "n", true)
+	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<BS><Tab><esc>", true, false, true), "n", true)
 	-- Toggle comment baris
 	vim.api.nvim_feedkeys("gcc", "v", true)
 
