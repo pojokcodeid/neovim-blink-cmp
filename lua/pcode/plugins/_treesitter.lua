@@ -2,6 +2,7 @@ return {
 	{
 		"nvim-treesitter/nvim-treesitter",
 		branch = "main",
+		event = "BufRead",
 		lazy = false, -- branch main TIDAK mendukung lazy-loading
 		build = ":TSUpdate",
 		config = function()
@@ -118,8 +119,9 @@ return {
 	-- filetype detection CFML
 	{
 		"nvim-lua/plenary.nvim",
-		lazy = false,
-		priority = 1000,
+		-- lazy = false,
+		-- priority = 1000,
+		event = "VeryLazy",
 		config = function()
 			vim.filetype.add({
 				extension = {
