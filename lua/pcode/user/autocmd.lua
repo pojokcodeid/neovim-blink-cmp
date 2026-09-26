@@ -625,6 +625,39 @@ end
 
 vim.api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan box cflint untuk file aktif" })
 
+-- Debounce: tunda eksekusi CFLint 500ms setelah save terakhir,
+-- supaya save berturut-turut cepat tidak numpuk job
+local cflint_debounce_timer = nil
+
+local function cflint_check_debounced()
+	if cflint_debounce_timer then
+		cflint_debounce_timer:stop()
+		cflint_debounce_timer:close()
+		cflint_debounce_timer = nil
+	end
+
+	cflint_debounce_timer = vim.uv.new_timer()
+	cflint_debounce_timer:start(
+		500,
+		0,
+		vim.schedule_wrap(function()
+			cflint_check()
+			if cflint_debounce_timer then
+				cflint_debounce_timer:close()
+				cflint_debounce_timer = nil
+			end
+		end)
+	)
+end
+
+vim.api.nvim_create_autocmd("BufWritePost", {
+	pattern = { "*.cfc", "*.cfm", "*.cfml", "*.cfs" },
+	callback = function()
+		cflint_check_debounced()
+	end,
+	desc = "Auto-run CFLint on save (debounced)",
+})
+
 vim.api.nvim_create_autocmd("TermClose", {
 	pattern = "*lazygit*", -- cocok dengan nama buffer terminal lazygit
 	callback = function()

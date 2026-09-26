@@ -178,3 +178,24 @@ vim.keymap.set(
 	replace_selected_text,
 	{ desc = "Replace all: teks terpilih -> input baru (dengan opsi case)" }
 )
+
+-- Search text yang di-blok (visual mode) dengan menekan /
+keymap("v", "/", function()
+	local saved_reg = vim.fn.getreg("v")
+	vim.cmd('normal! "vy')
+	local selected = vim.fn.getreg("v")
+	vim.fn.setreg("v", saved_reg)
+
+	if not selected or selected == "" then
+		return
+	end
+
+	-- escape karakter khusus regex Vim supaya teks literal dicari apa adanya
+	local escaped = vim.fn.escape(selected, "/\\.*$^~[]")
+	-- kalau selection multi-baris, ganti newline jadi \n literal untuk pattern search
+	escaped = escaped:gsub("\n", "\\n")
+
+	-- keluar dari visual mode, lalu isi command-line pencarian dengan teks tadi
+	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+	vim.fn.feedkeys("/" .. escaped)
+end, opts)
