@@ -167,6 +167,74 @@ vim.keymap.set("i", "<CR>", cfml_expand_on_cr, {
 	desc = "Expand CFML tag block on Enter",
 })
 
+-- config ini untuk cflint
+--
+-- integrasi dengan nvim-lint
+local lint = require("lint")
+
+-- Definisi Custom Linter CFLint (Khusus Error)
+lint.linters.cflint = {
+	cmd = "java",
+	args = {
+		"-jar",
+		vim.fn.expand(
+			"/Users/asepkomarudin/.CommandBox/cfml/modules/commandbox-cflint/lib/CFLint-1.5.0-all/CFLint-1.5.0-all.jar"
+		),
+		"-file",
+		function()
+			return vim.api.nvim_buf_get_name(0)
+		end,
+		"-json",
+		"-stdout",
+	},
+	stdin = false,
+	stream = "stdout",
+	ignore_exitcode = true,
+	parser = function(output, bufnr)
+		if output == "" or output == nil then
+			return {}
+		end
+
+		local ok, decoded = pcall(vim.json.decode, output)
+		if not ok or not decoded or not decoded.issues then
+			return {}
+		end
+
+		local diagnostics = {}
+
+		for _, issue in ipairs(decoded.issues) do
+			-- Filter: Hanya proses jika severity bernilai 'ERROR'
+			if issue.severity == "ERROR" then
+				for _, location in ipairs(issue.locations or {}) do
+					table.insert(diagnostics, {
+						lnum = (location.line or 1) - 1, -- 0-indexed line untuk Neovim
+						col = (location.column or 1) - 1,
+						end_lnum = (location.line or 1) - 1,
+						end_col = (location.column or 1),
+						severity = vim.diagnostic.severity.ERROR,
+						message = string.format("[%s] %s", issue.id or "", issue.message or ""),
+						source = "cflint",
+					})
+				end
+			end
+		end
+
+		return diagnostics
+	end,
+}
+
+-- Registry Filetype
+lint.linters_by_ft = lint.linters_by_ft or {}
+lint.linters_by_ft.cfml = { "cflint" }
+lint.linters_by_ft.cfc = { "cflint" }
+
+-- Autocmd Trigger
+vim.api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "InsertLeave" }, {
+	callback = function()
+		lint.try_lint()
+	end,
+})
+
 --[[ -- ~/.config/nvim/after/ftplugin/cfml.lua
 -- Breadcrumb manual untuk CFML via LSP documentSymbol (bukan nvim-navic)
 --

@@ -627,7 +627,7 @@ vim.api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan
 
 -- Debounce: tunda eksekusi CFLint 500ms setelah save terakhir,
 -- supaya save berturut-turut cepat tidak numpuk job
-local cflint_debounce_timer = nil
+--[[ local cflint_debounce_timer = nil
 
 local function cflint_check_debounced()
 	if cflint_debounce_timer then
@@ -656,7 +656,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 		cflint_check_debounced()
 	end,
 	desc = "Auto-run CFLint on save (debounced)",
-})
+}) ]]
 
 vim.api.nvim_create_autocmd("TermClose", {
 	pattern = "*lazygit*", -- cocok dengan nama buffer terminal lazygit
