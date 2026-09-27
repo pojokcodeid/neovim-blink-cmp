@@ -201,14 +201,12 @@ local lint = require("lint")
 -- Helper untuk membaca & memuat aturan .cflintrc jika ada
 local function get_excluded_rules_from_config(bufnr)
 	local bufpath = vim.api.nvim_buf_get_name(bufnr)
-	local root_dir = vim.fs.dirname(vim.fs.find(".cflintrc", { path = bufpath, upward = true })[1])
-
-	if not root_dir then
+	local found = vim.fs.find(".cflintrc", { path = bufpath, upward = true })[1]
+	if not found then
 		return {}
 	end
 
-	local config_file = root_dir .. "/.cflintrc"
-	local f = io.open(config_file, "r")
+	local f = io.open(found, "r")
 	if not f then
 		return {}
 	end
@@ -258,39 +256,68 @@ lint.linters.cflint = {
 			return {}
 		end
 
-		-- 1. Load rule yang di-exclude via file .cflintrc
 		local config_excludes = get_excluded_rules_from_config(bufnr)
-
-		-- 2. Ambil baris-baris kode di buffer Neovim
 		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 
-		-- Helper untuk scan annotation @cflint-ignore / @cflint-disable ke atas dari suatu baris (untuk level fungsi)
-		local function is_ignored_by_function_annotation(line_idx, rule_id)
-			for i = line_idx, 1, -1 do
-				local line = lines[i] or ""
+		-- 1. Scan fungsi dan simpan anotasi ignore-nya
+		local function_ignores = {}
+		local current_func_ignores = {}
+		local current_func_start = nil
+		local brace_count = 0
+		local in_function = false
 
-				-- Berhenti scan ke atas jika sudah keluar dari block comment atau bertemu fungsi lain
-				if line:find("^%s*function%s+") or line:find("^%s*public%s+") or line:find("^%s*private%s+") then
-					if i < line_idx - 1 then
-						-- Jika bertemu keyword function sebelum anotasi, batasi pencarian
+		for idx, line in ipairs(lines) do
+			-- Tangkap tag ignore di komentar (misal @cflint-ignore MISSING_VAR)
+			local rule_ignored = line:match("@cflint%-ignore%s+([%w_]+)")
+				or line:match("@cflint%-disable%s+([%w_]+)")
+				or line:match("cflint%-ignore%s+([%w_]+)")
+
+			if rule_ignored then
+				table.insert(current_func_ignores, rule_ignored)
+			elseif line:find("@cflint%-ignore") or line:find("@cflint%-disable") or line:find("cflint%-ignore") then
+				table.insert(current_func_ignores, "ALL")
+			end
+
+			-- Regex Fleksibel: Cocok dengan "public struct function InboxDetail(...)" maupun "function test(...)"
+			if
+				line:find("function%s+[%w_]+%s*%(")
+				or line:find("function%s+[%w_]+%s*[%w_]+%s*%(")
+				or line:find("function%s*%(")
+			then
+				current_func_start = idx
+				in_function = true
+				brace_count = 0
+			end
+
+			-- Hitung kurung kurawal untuk melacak batas awal dan akhir fungsi
+			if in_function then
+				local _, open_braces = line:gsub("{", "")
+				local _, close_braces = line:gsub("}", "")
+				brace_count = brace_count + open_braces - close_braces
+
+				-- Jika brace kembali ke 0 (atau minus), berarti fungsi berakhir
+				if brace_count <= 0 and line:find("}") then
+					table.insert(function_ignores, {
+						start_line = current_func_start,
+						end_line = idx,
+						rules = current_func_ignores,
+					})
+					in_function = false
+					current_func_start = nil
+					current_func_ignores = {}
+				end
+			end
+		end
+
+		-- Helper pengecekan apakah baris error berada di dalam fungsi yang di-ignore
+		local function is_ignored_in_function(line_idx, rule_id)
+			for _, fn in ipairs(function_ignores) do
+				if line_idx >= fn.start_line and line_idx <= fn.end_line then
+					for _, r in ipairs(fn.rules) do
+						if r == rule_id or r == "ALL" then
+							return true
+						end
 					end
-				end
-
-				local annotation = line:match("@cflint%-ignore%s+([%w_]+)") or line:match("@cflint%-disable%s+([%w_]+)")
-
-				if annotation then
-					if annotation == rule_id or annotation == "ALL" then
-						return true
-					end
-				end
-
-				if line:find("@cflint%-ignore%s*$") or line:find("@cflint%-disable%s*$") then
-					return true
-				end
-
-				-- Batasi scan maksimal 50 baris ke atas demi performa
-				if (line_idx - i) > 50 then
-					break
 				end
 			end
 			return false
@@ -301,7 +328,6 @@ lint.linters.cflint = {
 		for _, issue in ipairs(decoded.issues) do
 			local rule_id = issue.id or ""
 
-			-- Cek 1: Apakah di-exclude oleh global .cflintrc?
 			if issue.severity == "ERROR" and not config_excludes[rule_id] then
 				for _, location in ipairs(issue.locations or {}) do
 					local line_idx = location.line or 1
@@ -310,8 +336,8 @@ lint.linters.cflint = {
 
 					local is_disabled = false
 
-					-- Cek 2: Inline atau Next-Line Comment Directive (// CFLINT-DISABLE [RULE])
-					local check_inline_disable = function(line_str)
+					-- Check 1: Inline / Previous Line Ignore Comment (// CFLINT-DISABLE / // CFLINT-DISABLE MISSING_VAR)
+					local check_inline = function(line_str)
 						if not line_str then
 							return false
 						end
@@ -321,20 +347,18 @@ lint.linters.cflint = {
 						if disabled_rule then
 							return disabled_rule == rule_id or disabled_rule == "ALL"
 						end
-
 						return line_str:find("CFLINT%-DISABLE") ~= nil or line_str:find("cflint%-disable") ~= nil
 					end
 
-					if check_inline_disable(current_line) or check_inline_disable(prev_line) then
+					if check_inline(current_line) or check_inline(prev_line) then
 						is_disabled = true
 					end
 
-					-- Cek 3: Function level Javadoc Annotation (@cflint-ignore MISSING_VAR)
-					if not is_disabled and is_ignored_by_function_annotation(line_idx, rule_id) then
+					-- Check 2: Function Annotation (@cflint-ignore MISSING_VAR)
+					if not is_disabled and is_ignored_in_function(line_idx, rule_id) then
 						is_disabled = true
 					end
 
-					-- Hanya masukkan ke diagnostics jika TIDAK di-ignore
 					if not is_disabled then
 						table.insert(diagnostics, {
 							lnum = line_idx - 1,
