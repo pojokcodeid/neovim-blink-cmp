@@ -168,11 +168,69 @@ vim.keymap.set("i", "<CR>", cfml_expand_on_cr, {
 })
 
 -- config ini untuk cflint
+--[[
+  rule exculde 
+
+  1. // CFLINT-DISABL -> EMengabaikan Per-Baris Kode (Line Level) bisa diatasnya
+    atau disampingnya 
+  2. // CFLINT-DISABLE MISSING_VAR -> Mengabaikan Aturan Tertentu Sahaja (Rule Specific)/**
+  3. Mengabaikan Satu Fungsi / Component (Function / File Level)
+
+  /**
+  * @cflint-ignore MISSING_VAR
+  */
+  public any function approve(required string RequestKey) {
+      cfparam(name = "attresult", default = "");
+      // ...
+  }
+  4. Mengabaikan Global via File Config .cflintrc
+  
+  {
+    "excludes": [
+      {
+        "name": "MISSING_VAR"
+      }
+    ]
+  }
+
+]]
 --
 -- integrasi dengan nvim-lint
 local lint = require("lint")
 
--- Definisi Custom Linter CFLint (Khusus Error)
+-- Helper untuk membaca & memuat aturan .cflintrc jika ada
+local function get_excluded_rules_from_config(bufnr)
+	local bufpath = vim.api.nvim_buf_get_name(bufnr)
+	local root_dir = vim.fs.dirname(vim.fs.find(".cflintrc", { path = bufpath, upward = true })[1])
+
+	if not root_dir then
+		return {}
+	end
+
+	local config_file = root_dir .. "/.cflintrc"
+	local f = io.open(config_file, "r")
+	if not f then
+		return {}
+	end
+
+	local content = f:read("*a")
+	f:close()
+
+	local ok, decoded = pcall(vim.json.decode, content)
+	if not ok or not decoded or not decoded.excludes then
+		return {}
+	end
+
+	local excluded = {}
+	for _, item in ipairs(decoded.excludes) do
+		if item.name then
+			excluded[item.name] = true
+		end
+	end
+	return excluded
+end
+
+-- Custom Linter CFLint
 lint.linters.cflint = {
 	cmd = "java",
 	args = {
@@ -200,21 +258,94 @@ lint.linters.cflint = {
 			return {}
 		end
 
+		-- 1. Load rule yang di-exclude via file .cflintrc
+		local config_excludes = get_excluded_rules_from_config(bufnr)
+
+		-- 2. Ambil baris-baris kode di buffer Neovim
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+		-- Helper untuk scan annotation @cflint-ignore / @cflint-disable ke atas dari suatu baris (untuk level fungsi)
+		local function is_ignored_by_function_annotation(line_idx, rule_id)
+			for i = line_idx, 1, -1 do
+				local line = lines[i] or ""
+
+				-- Berhenti scan ke atas jika sudah keluar dari block comment atau bertemu fungsi lain
+				if line:find("^%s*function%s+") or line:find("^%s*public%s+") or line:find("^%s*private%s+") then
+					if i < line_idx - 1 then
+						-- Jika bertemu keyword function sebelum anotasi, batasi pencarian
+					end
+				end
+
+				local annotation = line:match("@cflint%-ignore%s+([%w_]+)") or line:match("@cflint%-disable%s+([%w_]+)")
+
+				if annotation then
+					if annotation == rule_id or annotation == "ALL" then
+						return true
+					end
+				end
+
+				if line:find("@cflint%-ignore%s*$") or line:find("@cflint%-disable%s*$") then
+					return true
+				end
+
+				-- Batasi scan maksimal 50 baris ke atas demi performa
+				if (line_idx - i) > 50 then
+					break
+				end
+			end
+			return false
+		end
+
 		local diagnostics = {}
 
 		for _, issue in ipairs(decoded.issues) do
-			-- Filter: Hanya proses jika severity bernilai 'ERROR'
-			if issue.severity == "ERROR" then
+			local rule_id = issue.id or ""
+
+			-- Cek 1: Apakah di-exclude oleh global .cflintrc?
+			if issue.severity == "ERROR" and not config_excludes[rule_id] then
 				for _, location in ipairs(issue.locations or {}) do
-					table.insert(diagnostics, {
-						lnum = (location.line or 1) - 1, -- 0-indexed line untuk Neovim
-						col = (location.column or 1) - 1,
-						end_lnum = (location.line or 1) - 1,
-						end_col = (location.column or 1),
-						severity = vim.diagnostic.severity.ERROR,
-						message = string.format("[%s] %s", issue.id or "", issue.message or ""),
-						source = "cflint",
-					})
+					local line_idx = location.line or 1
+					local current_line = lines[line_idx] or ""
+					local prev_line = lines[line_idx - 1] or ""
+
+					local is_disabled = false
+
+					-- Cek 2: Inline atau Next-Line Comment Directive (// CFLINT-DISABLE [RULE])
+					local check_inline_disable = function(line_str)
+						if not line_str then
+							return false
+						end
+						local disabled_rule = line_str:match("CFLINT%-DISABLE%s+([%w_]+)")
+							or line_str:match("cflint%-disable%s+([%w_]+)")
+
+						if disabled_rule then
+							return disabled_rule == rule_id or disabled_rule == "ALL"
+						end
+
+						return line_str:find("CFLINT%-DISABLE") ~= nil or line_str:find("cflint%-disable") ~= nil
+					end
+
+					if check_inline_disable(current_line) or check_inline_disable(prev_line) then
+						is_disabled = true
+					end
+
+					-- Cek 3: Function level Javadoc Annotation (@cflint-ignore MISSING_VAR)
+					if not is_disabled and is_ignored_by_function_annotation(line_idx, rule_id) then
+						is_disabled = true
+					end
+
+					-- Hanya masukkan ke diagnostics jika TIDAK di-ignore
+					if not is_disabled then
+						table.insert(diagnostics, {
+							lnum = line_idx - 1,
+							col = (location.column or 1) - 1,
+							end_lnum = line_idx - 1,
+							end_col = (location.column or 1),
+							severity = vim.diagnostic.severity.ERROR,
+							message = string.format("[%s] %s", rule_id, issue.message or ""),
+							source = "cflint",
+						})
+					end
 				end
 			end
 		end
@@ -223,12 +354,11 @@ lint.linters.cflint = {
 	end,
 }
 
--- Registry Filetype
+-- Registry Filetype & Autocmd Trigger
 lint.linters_by_ft = lint.linters_by_ft or {}
 lint.linters_by_ft.cfml = { "cflint" }
 lint.linters_by_ft.cfc = { "cflint" }
 
--- Autocmd Trigger
 vim.api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "InsertLeave" }, {
 	callback = function()
 		lint.try_lint()
