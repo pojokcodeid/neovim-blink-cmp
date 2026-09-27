@@ -267,7 +267,6 @@ lint.linters.cflint = {
 		local in_function = false
 
 		for idx, line in ipairs(lines) do
-			-- Tangkap tag ignore di komentar (misal @cflint-ignore MISSING_VAR)
 			local rule_ignored = line:match("@cflint%-ignore%s+([%w_]+)")
 				or line:match("@cflint%-disable%s+([%w_]+)")
 				or line:match("cflint%-ignore%s+([%w_]+)")
@@ -278,7 +277,6 @@ lint.linters.cflint = {
 				table.insert(current_func_ignores, "ALL")
 			end
 
-			-- Regex Fleksibel: Cocok dengan "public struct function InboxDetail(...)" maupun "function test(...)"
 			if
 				line:find("function%s+[%w_]+%s*%(")
 				or line:find("function%s+[%w_]+%s*[%w_]+%s*%(")
@@ -289,13 +287,11 @@ lint.linters.cflint = {
 				brace_count = 0
 			end
 
-			-- Hitung kurung kurawal untuk melacak batas awal dan akhir fungsi
 			if in_function then
 				local _, open_braces = line:gsub("{", "")
 				local _, close_braces = line:gsub("}", "")
 				brace_count = brace_count + open_braces - close_braces
 
-				-- Jika brace kembali ke 0 (atau minus), berarti fungsi berakhir
 				if brace_count <= 0 and line:find("}") then
 					table.insert(function_ignores, {
 						start_line = current_func_start,
@@ -309,7 +305,6 @@ lint.linters.cflint = {
 			end
 		end
 
-		-- Helper pengecekan apakah baris error berada di dalam fungsi yang di-ignore
 		local function is_ignored_in_function(line_idx, rule_id)
 			for _, fn in ipairs(function_ignores) do
 				if line_idx >= fn.start_line and line_idx <= fn.end_line then
@@ -327,8 +322,9 @@ lint.linters.cflint = {
 
 		for _, issue in ipairs(decoded.issues) do
 			local rule_id = issue.id or ""
+			local severity_str = issue.severity or "ERROR"
 
-			if issue.severity == "ERROR" and not config_excludes[rule_id] then
+			if severity_str == "ERROR" and not config_excludes[rule_id] then
 				for _, location in ipairs(issue.locations or {}) do
 					local line_idx = location.line or 1
 					local current_line = lines[line_idx] or ""
@@ -336,7 +332,6 @@ lint.linters.cflint = {
 
 					local is_disabled = false
 
-					-- Check 1: Inline / Previous Line Ignore Comment (// CFLINT-DISABLE / // CFLINT-DISABLE MISSING_VAR)
 					local check_inline = function(line_str)
 						if not line_str then
 							return false
@@ -354,19 +349,37 @@ lint.linters.cflint = {
 						is_disabled = true
 					end
 
-					-- Check 2: Function Annotation (@cflint-ignore MISSING_VAR)
 					if not is_disabled and is_ignored_in_function(line_idx, rule_id) then
 						is_disabled = true
 					end
 
 					if not is_disabled then
+						-- Ambil pesan detail dari issue.message atau issue.expression (fallback jika message kosong/sama dengan ID)
+						local detail_msg = issue.message
+						if not detail_msg or detail_msg == "" or detail_msg == rule_id then
+							if location.message and location.message ~= "" then
+								detail_msg = location.message
+							elseif issue.expression and issue.expression ~= "" then
+								detail_msg =
+									string.format("Variable %s is not declared with a var statement.", issue.expression)
+							else
+								detail_msg = "Variable is not declared with a var statement."
+							end
+						end
+
+						-- Bersihkan whitespace ekstra
+						detail_msg = detail_msg:gsub("^%s*(.-)%s*$", "%1")
+
+						-- Format hasil: "Variable qUpdateRequest is not declared with a var statement. (MISSING_VAR)"
+						local formatted_message = string.format("%s (%s)", detail_msg, rule_id)
+
 						table.insert(diagnostics, {
 							lnum = line_idx - 1,
 							col = (location.column or 1) - 1,
 							end_lnum = line_idx - 1,
 							end_col = (location.column or 1),
 							severity = vim.diagnostic.severity.ERROR,
-							message = string.format("[%s] %s", rule_id, issue.message or ""),
+							message = formatted_message,
 							source = "cflint",
 						})
 					end
