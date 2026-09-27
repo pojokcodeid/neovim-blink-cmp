@@ -171,7 +171,7 @@ vim.keymap.set("i", "<CR>", cfml_expand_on_cr, {
 --[[
   rule exculde 
 
-  1. // CFLINT-DISABLE -> EMengabaikan Per-Baris Kode (Line Level) bisa diatasnya
+  1. // CFLINT-DISABL -> EMengabaikan Per-Baris Kode (Line Level) bisa diatasnya
     atau disampingnya 
   2. // CFLINT-DISABLE MISSING_VAR -> Mengabaikan Aturan Tertentu Sahaja (Rule Specific)/**
   3. Mengabaikan Satu Fungsi / Component (Function / File Level)
@@ -228,33 +228,33 @@ local function get_excluded_rules_from_config(bufnr)
 	return excluded
 end
 
--- Custom Linter CFLint menggunakan CommandBox (box cflint)
+-- Custom Linter CFLint
 lint.linters.cflint = {
-	cmd = "box",
+	cmd = "java",
 	args = {
-		"cflint",
+		"-jar",
+		vim.fn.expand(
+			"/Users/asepkomarudin/.CommandBox/cfml/modules/commandbox-cflint/lib/CFLint-1.5.0-all/CFLint-1.5.0-all.jar"
+		),
+		"-file",
 		function()
-			local file = vim.api.nvim_buf_get_name(0)
-			local filename = vim.fn.fnamemodify(file, ":t")
-			return "pattern=" .. filename
+			return vim.api.nvim_buf_get_name(0)
 		end,
-		"reportLevel=ERROR",
+		"-json",
+		"-stdout",
 	},
-	-- KUNCI PERBAIKAN: Set working directory ke folder tempat file berada
-	cwd = function()
-		local file = vim.api.nvim_buf_get_name(0)
-		return vim.fn.fnamemodify(file, ":h")
-	end,
 	stdin = false,
-	stream = "both", -- Tangkap stdout dan stderr karena CommandBox terkadang mengirim log ke stderr
+	stream = "stdout",
 	ignore_exitcode = true,
 	parser = function(output, bufnr)
 		if output == "" or output == nil then
 			return {}
 		end
 
-		-- Hilangkan ANSI escape codes (warna terminal dari CommandBox)
-		local clean_output = output:gsub("\27%[[%d;]*m", "")
+		local ok, decoded = pcall(vim.json.decode, output)
+		if not ok or not decoded or not decoded.issues then
+			return {}
+		end
 
 		local config_excludes = get_excluded_rules_from_config(bufnr)
 		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
@@ -320,56 +320,69 @@ lint.linters.cflint = {
 
 		local diagnostics = {}
 
-		-- 2. Parse baris demi baris output dari `box cflint`
-		for line in clean_output:gmatch("[^\r\n]+") do
-			-- Pattern mencocokkan format: ERROR: MISSING_VAR, Variable ... [1408,10]
-			local sev, rule_id, detail_msg, lnum, col =
-				line:match("^%s*(%u+):%s*([%u_]+),%s*(.-)%s*%[(%d+),(%d+)%]%s*$")
+		for _, issue in ipairs(decoded.issues) do
+			local rule_id = issue.id or ""
+			local severity_str = issue.severity or "ERROR"
 
-			if sev and sev == "ERROR" and not config_excludes[rule_id] then
-				local line_idx = tonumber(lnum) or 1
-				local col_idx = tonumber(col) or 1
-				local current_line = lines[line_idx] or ""
-				local prev_line = lines[line_idx - 1] or ""
+			if severity_str == "ERROR" and not config_excludes[rule_id] then
+				for _, location in ipairs(issue.locations or {}) do
+					local line_idx = location.line or 1
+					local current_line = lines[line_idx] or ""
+					local prev_line = lines[line_idx - 1] or ""
 
-				local is_disabled = false
+					local is_disabled = false
 
-				-- Check Inline / Previous Line Ignore Comment
-				local check_inline = function(line_str)
-					if not line_str then
-						return false
+					local check_inline = function(line_str)
+						if not line_str then
+							return false
+						end
+						local disabled_rule = line_str:match("CFLINT%-DISABLE%s+([%w_]+)")
+							or line_str:match("cflint%-disable%s+([%w_]+)")
+
+						if disabled_rule then
+							return disabled_rule == rule_id or disabled_rule == "ALL"
+						end
+						return line_str:find("CFLINT%-DISABLE") ~= nil or line_str:find("cflint%-disable") ~= nil
 					end
-					local disabled_rule = line_str:match("CFLINT%-DISABLE%s+([%w_]+)")
-						or line_str:match("cflint%-disable%s+([%w_]+)")
 
-					if disabled_rule then
-						return disabled_rule == rule_id or disabled_rule == "ALL"
+					if check_inline(current_line) or check_inline(prev_line) then
+						is_disabled = true
 					end
-					return line_str:find("CFLINT%-DISABLE") ~= nil or line_str:find("cflint%-disable") ~= nil
-				end
 
-				if check_inline(current_line) or check_inline(prev_line) then
-					is_disabled = true
-				end
+					if not is_disabled and is_ignored_in_function(line_idx, rule_id) then
+						is_disabled = true
+					end
 
-				-- Check Function Level Annotation
-				if not is_disabled and is_ignored_in_function(line_idx, rule_id) then
-					is_disabled = true
-				end
+					if not is_disabled then
+						-- Ambil pesan detail dari issue.message atau issue.expression (fallback jika message kosong/sama dengan ID)
+						local detail_msg = issue.message
+						if not detail_msg or detail_msg == "" or detail_msg == rule_id then
+							if location.message and location.message ~= "" then
+								detail_msg = location.message
+							elseif issue.expression and issue.expression ~= "" then
+								detail_msg =
+									string.format("Variable %s is not declared with a var statement.", issue.expression)
+							else
+								detail_msg = "Variable is not declared with a var statement."
+							end
+						end
 
-				if not is_disabled then
-					-- Format pesan: "Variable qGetDetail is not declared with a var statement. (MISSING_VAR)"
-					local formatted_message = string.format("%s (%s)", detail_msg, rule_id)
+						-- Bersihkan whitespace ekstra
+						detail_msg = detail_msg:gsub("^%s*(.-)%s*$", "%1")
 
-					table.insert(diagnostics, {
-						lnum = line_idx - 1,
-						col = col_idx - 1,
-						end_lnum = line_idx - 1,
-						end_col = col_idx,
-						severity = vim.diagnostic.severity.ERROR,
-						message = formatted_message,
-						source = "cflint",
-					})
+						-- Format hasil: "Variable qUpdateRequest is not declared with a var statement. (MISSING_VAR)"
+						local formatted_message = string.format("%s (%s)", detail_msg, rule_id)
+
+						table.insert(diagnostics, {
+							lnum = line_idx - 1,
+							col = (location.column or 1) - 1,
+							end_lnum = line_idx - 1,
+							end_col = (location.column or 1),
+							severity = vim.diagnostic.severity.ERROR,
+							message = formatted_message,
+							source = "cflint",
+						})
+					end
 				end
 			end
 		end
@@ -388,6 +401,7 @@ vim.api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "InsertLeave" }, {
 		lint.try_lint()
 	end,
 })
+
 --[[ -- ~/.config/nvim/after/ftplugin/cfml.lua
 -- Breadcrumb manual untuk CFML via LSP documentSymbol (bukan nvim-navic)
 --
