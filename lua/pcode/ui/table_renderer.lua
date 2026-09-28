@@ -15,6 +15,10 @@ vim.api.nvim_set_hl(0, "Color5", { bg = "#69ff94", fg = "#1e1e1e", bold = true }
 vim.api.nvim_set_hl(0, "Color6", { bg = "#FF6E6E", fg = "#1e1e1e", bold = true })
 vim.api.nvim_set_hl(0, "Color7", { bg = "#D6ACFF", fg = "#1e1e1e", bold = true })
 
+-- Highlight khusus untuk Status ON / OFF
+vim.api.nvim_set_hl(0, "StatusOn", { fg = "#A3BE8C", bold = true }) -- Warna Hijau (Nord Green)
+vim.api.nvim_set_hl(0, "StatusOff", { fg = "#BF616A", bold = true }) -- Warna Merah (Nord Red / Opsional)
+
 local section_hl = {
 	"KeymapsSectionOil",
 	"KeymapsSectionCmp",
@@ -32,10 +36,7 @@ local section_hl = {
 local hl_index = 1
 local function next_hl()
 	local hl = section_hl[hl_index] or "Normal"
-	hl_index = hl_index + 1
-	if hl_index > #section_hl then
-		hl_index = 1
-	end
+	hl_index = (hl_index % #section_hl) + 1
 	return hl
 end
 
@@ -58,26 +59,43 @@ function M.render_boolean_table(title, tbl)
 	table.insert(lines, string.rep("─", 45))
 	table.insert(lines, string.format("%-22s %-10s", "NAME", "STATUS"))
 
-	-- Ambil semua key
 	local keys = {}
-	for key, _ in pairs(tbl) do
+	for key in pairs(tbl) do
 		table.insert(keys, key)
 	end
-
-	-- Sort ascending
 	table.sort(keys)
 
-	-- Iterasi sesuai urutan
 	for _, key in ipairs(keys) do
 		local val = tbl[key]
 		local status = val and "ON" or "OFF"
-		local icon = val and "✓" or " "
-		table.insert(lines, string.format("%-22s [%s] %s", key, icon, status))
+		local icon = val and "" or ""
+		local line_text = string.format("%-22s %s %s", key, icon, status)
+
+		local current_line_idx = #lines
+		table.insert(lines, line_text)
+
+		-- Berikan highlight hijau untuk status ON (atau merah untuk OFF)
+		if val then
+			table.insert(highlights, {
+				line = current_line_idx,
+				col_start = 23, -- Kolom dimulainya ikon/status
+				col_end = -1,
+				hl = "StatusOn",
+			})
+		else
+			table.insert(highlights, {
+				line = current_line_idx,
+				col_start = 23,
+				col_end = -1,
+				hl = "StatusOff",
+			})
+		end
 	end
 
 	table.insert(lines, "")
 	return lines, highlights
 end
+
 -- =========================
 -- KEY VALUE TABLE
 -- =========================
@@ -97,8 +115,15 @@ function M.render_key_value(title, tbl)
 	table.insert(lines, string.rep("─", 45))
 	table.insert(lines, string.format("%-22s %-20s", "NAME", "VALUE"))
 
-	for k, v in pairs(tbl) do
-		table.insert(lines, string.format("%-22s %s", k, v))
+	-- Sort keys untuk konsistensi tampilan
+	local keys = {}
+	for k in pairs(tbl) do
+		table.insert(keys, k)
+	end
+	table.sort(keys)
+
+	for _, k in ipairs(keys) do
+		table.insert(lines, string.format("%-22s %s", k, tbl[k]))
 	end
 
 	table.insert(lines, "")
