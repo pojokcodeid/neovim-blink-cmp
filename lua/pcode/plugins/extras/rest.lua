@@ -160,6 +160,34 @@ return {
 				end)
 			end,
 		})
+
+		-- format number disable
+		local my_buffer_opts = vim.api.nvim_create_augroup("MyBufferOpts", { clear = true })
+
+		vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter" }, {
+			group = my_buffer_opts,
+			pattern = { "rest_nvim_result", "http" },
+			callback = function(args)
+				local buf = args.buf
+
+				-- Pastikan mengecek filetype buffer saat ini
+				if vim.tbl_contains({ "rest_nvim_result", "http" }, vim.bo[buf].filetype) then
+					-- 1. Sembunyikan line numbers & gutter/column
+					vim.wo.number = false
+					vim.wo.relativenumber = false
+					vim.wo.signcolumn = "no"
+					vim.wo.foldcolumn = "0"
+
+					-- 2. Tambahkan keymap 'q' untuk keluar (:q!) khusus di buffer ini
+					vim.keymap.set("n", "q", "<cmd>q!<CR>", {
+						buffer = buf,
+						silent = true,
+						noremap = true,
+						desc = "Close rest_nvim result window",
+					})
+				end
+			end,
+		})
 	end,
 	keys = {
 		{ "<leader>r", "", desc = "Http Request" },
