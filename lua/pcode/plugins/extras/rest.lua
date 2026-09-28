@@ -123,6 +123,43 @@ return {
 				})
 			end,
 		})
+
+		-- Ubah jendela hasil rest.nvim menjadi floating window (seperti :Mason)
+		local function float_result(win)
+			if not vim.api.nvim_win_is_valid(win) then
+				return
+			end
+			if vim.api.nvim_win_get_config(win).relative ~= "" then
+				return -- sudah floating
+			end
+			local width = math.floor(vim.o.columns * 0.85)
+			local height = math.floor(vim.o.lines * 0.8)
+			vim.api.nvim_win_set_config(win, {
+				relative = "editor",
+				width = width,
+				height = height,
+				row = math.floor((vim.o.lines - height) / 2) - 1,
+				col = math.floor((vim.o.columns - width) / 2),
+				border = "rounded",
+				title = " Response ",
+				title_pos = "center",
+				zindex = 50,
+			})
+			vim.api.nvim_set_current_win(win)
+		end
+
+		vim.api.nvim_create_autocmd("BufWinEnter", {
+			callback = function(ev)
+				if vim.bo[ev.buf].filetype ~= "rest_nvim_result" then
+					return
+				end
+				vim.schedule(function()
+					for _, win in ipairs(vim.fn.win_findbuf(ev.buf)) do
+						float_result(win)
+					end
+				end)
+			end,
+		})
 	end,
 	keys = {
 		{ "<leader>r", "", desc = "Http Request" },
