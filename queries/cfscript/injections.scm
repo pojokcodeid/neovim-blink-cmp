@@ -15,3 +15,13 @@
 ((query_text) @injection.content
   (#set! injection.language "sql")
   (#set! injection.combined))
+
+
+;; extends
+
+;; Suntik HTML ke string yang mengandung tag HTML
+((string
+   (string_fragment) @injection.content)
+  (#lua-match? @injection.content "<[/!]?%a")
+  (#set! injection.language "html")
+  (#set! injection.combined))
