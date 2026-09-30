@@ -61,3 +61,10 @@
 ((cf_savecontent_body_sql
   (cf_savecontent_content) @injection.content)
  (#set! injection.language "cfquery"))
+
+;; SQL di dalam <cfquery>
+((cf_query_content) @injection.content
+  (#set! injection.language "sql")
+  (#set! injection.combined))
+
+
