@@ -136,7 +136,7 @@ local function apply(buf)
 
 		-- b) kata: keyword, fungsi, nama tabel dan alias
 		--    state 0 = normal, 1 = menunggu nama tabel, 2 = menunggu alias
-		local state, pe = 0, r1 - 1
+		local state, pe, prevw = 0, r1 - 1, ""
 		p = r1
 		while true do
 			local s, e = text:find("[%a_][%w_]*", p)
@@ -145,12 +145,14 @@ local function apply(buf)
 			end
 			local w = text:sub(s, e):lower()
 			local isfn = text:sub(e + 1, e + 1) == "("
+			local is_table = false
 
 			if state == 1 then
 				if KW[w] then
 					state = 0
 				else
 					mark(s, e, "CfmlSqlTable", P.sql_ident)
+					is_table = true
 					state = 2
 				end
 			elseif state == 2 then
@@ -158,10 +160,12 @@ local function apply(buf)
 				if gap == "." then
 					-- schema.tabel
 					mark(s, e, "CfmlSqlTable", P.sql_ident)
+					is_table = true
 				else
 					state = 0
 					if not KW[w] and not isfn and gap:match("^%s+$") then
 						mark(s, e, "CfmlSqlTable", P.sql_ident) -- alias
+						is_table = true
 					end
 				end
 			end
@@ -173,8 +177,12 @@ local function apply(buf)
 				end
 			elseif isfn then
 				mark(s, e, "CfmlSqlFunction", P.sql)
+			elseif not is_table and prevw ~= "as" then
+				-- identifier polos (mis. kolom di daftar INSERT / SELECT)
+				mark(s, e, "CfmlSqlColumn", P.sql + 1)
 			end
 
+			prevw = w
 			pe = e
 			p = e + 1
 		end

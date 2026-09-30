@@ -66,11 +66,11 @@
   (cf_query_content) @injection.content)
  (#set! injection.language "cfquery"))
 
-;; SQL di dalam <cfquery>
-;; ((cf_query_content) @injection.content 
-;;  (#set! injection.language "sql")
-;;  (#set! injection.combined))
-
+;; SQL di dalam <cfquery>, kecuali ada komentar CFML
+((cf_query_content) @injection.content
+  (#not-lua-match? @injection.content "<!%-%-%-")
+  (#set! injection.language "sql")
+  (#set! injection.combined))
 
 
 
