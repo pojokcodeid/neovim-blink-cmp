@@ -40,6 +40,7 @@ return {
 				CmpItemAbbrDeprecated = { fg = "#ABB2BF" },
 				CmpItemAbbrMatch = { fg = "#8BE9FD" },
 				htmlLink = { fg = "#BD93F9", underline = false },
+				CfmlSqlKeyword = { fg = "#BD93F9", underline = false },
 				Underlined = { fg = "#8BE9FD" },
 				NvimTreeSpecialFile = { fg = "#FF79C6" },
 				SpellBad = { fg = "#FF6E6E" },
