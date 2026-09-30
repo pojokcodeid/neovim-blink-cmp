@@ -1,16 +1,29 @@
 -- ~/.config/nvim/after/plugin/cfml_query_hl.lua
--- Pewarnaan isi <cfquery> pada file CFML (.cfc / .cfm) memakai extmark,
--- karena parser Treesitter gagal membaca SQL yang bercampur tag CFML.
+-- Pewarnaan isi <cfquery> pada file CFML (.cfc / .cfm) memakai extmark.
+-- Warna SQL di-link ke group standar colorscheme, jadi tampilannya sama
+-- dengan SQL di dalam queryExecute("...") yang diwarnai parser.
 
 local ns = vim.api.nvim_create_namespace("cfml_query_extra")
 
--- ─── Warna SQL (group khusus, tidak mengganggu bahasa lain) ─────────────
+-- ─── Warna: link ke group colorscheme ───────────────────────────────────
+-- Ubah nama group di kanan kalau warnanya belum sama dengan gambar 2.
+-- Cek nama group yang dipakai parser: taruh kursor di kata pada SQL
+-- queryExecute lalu :Inspect, lihat group @...sql
+local SQL_LINKS = {
+	CfmlSqlKeyword = "@keyword", -- select, from, join, on, and
+	CfmlSqlFunction = "@function.call", -- TRIM(, CONCAT(
+	CfmlSqlNumber = "@number",
+	CfmlSqlString = "@string",
+	CfmlSqlComment = "@comment",
+	CfmlSqlTable = "@type", -- nama tabel, alias, t2. (cyan)
+	CfmlSqlColumn = "@variable.member", -- kolom setelah titik (oranye)
+	CfmlSqlOperator = "@operator", -- = < > !
+}
+
 local function sql_colors()
-	vim.api.nvim_set_hl(0, "CfmlSqlKeyword", { fg = "#BD93F9", italic = true })
-	vim.api.nvim_set_hl(0, "CfmlSqlFunction", { fg = "#50fa7b" })
-	vim.api.nvim_set_hl(0, "CfmlSqlNumber", { fg = "#8BE9FD" })
-	vim.api.nvim_set_hl(0, "CfmlSqlString", { fg = "#f1fa8c" })
-	vim.api.nvim_set_hl(0, "CfmlSqlComment", { fg = "#6272a4", italic = true })
+	for group, target in pairs(SQL_LINKS) do
+		vim.api.nvim_set_hl(0, group, { link = target })
+	end
 end
 sql_colors()
 vim.api.nvim_create_autocmd("ColorScheme", { callback = sql_colors })
@@ -27,11 +40,15 @@ do
 	KW[w] = true
 end
 
+-- keyword yang diikuti nama tabel
+local TABLE_KW = { from = true, join = true, into = true, update = true, table = true }
+
 -- ─── Prioritas (makin besar makin menang; Treesitter = 100) ─────────────
 local P = {
 	sql = 250,
-	sql_str = 252,
-	sql_comment = 255,
+	sql_ident = 253,
+	sql_str = 260,
+	sql_comment = 265,
 	tag = 300,
 	attr = 310,
 	str = 320,
@@ -80,7 +97,7 @@ local function apply(buf)
 			end_row = r2,
 			end_col = c2,
 			hl_group = hl,
-			priority = prio + 1000,
+			priority = prio,
 		})
 	end
 
@@ -104,23 +121,65 @@ local function apply(buf)
 		local r1, r2 = qs_end + 1, qe - 1
 
 		-- 0) SQL dasar ------------------------------------------------------
-		-- kata: keyword dan fungsi
+
+		-- a) qualifier.kolom  (t2.requestfor -> t2 = tabel, requestfor = kolom)
 		local p = r1
+		while true do
+			local s, e, q, c = text:find("([%a_][%w_]*)%.([%a_][%w_]*)", p)
+			if not s or s > r2 then
+				break
+			end
+			mark(s, s + #q - 1, "CfmlSqlTable", P.sql_ident)
+			mark(e - #c + 1, e, "CfmlSqlColumn", P.sql_ident)
+			p = e + 1
+		end
+
+		-- b) kata: keyword, fungsi, nama tabel dan alias
+		--    state 0 = normal, 1 = menunggu nama tabel, 2 = menunggu alias
+		local state, pe = 0, r1 - 1
+		p = r1
 		while true do
 			local s, e = text:find("[%a_][%w_]*", p)
 			if not s or s > r2 then
 				break
 			end
 			local w = text:sub(s, e):lower()
+			local isfn = text:sub(e + 1, e + 1) == "("
+
+			if state == 1 then
+				if KW[w] then
+					state = 0
+				else
+					mark(s, e, "CfmlSqlTable", P.sql_ident)
+					state = 2
+				end
+			elseif state == 2 then
+				local gap = text:sub(pe + 1, s - 1)
+				if gap == "." then
+					-- schema.tabel
+					mark(s, e, "CfmlSqlTable", P.sql_ident)
+				else
+					state = 0
+					if not KW[w] and not isfn and gap:match("^%s+$") then
+						mark(s, e, "CfmlSqlTable", P.sql_ident) -- alias
+					end
+				end
+			end
+
 			if KW[w] then
 				mark(s, e, "CfmlSqlKeyword", P.sql)
-			elseif text:sub(e + 1, e + 1) == "(" then
+				if TABLE_KW[w] then
+					state = 1
+				end
+			elseif isfn then
 				mark(s, e, "CfmlSqlFunction", P.sql)
 			end
+
+			pe = e
 			p = e + 1
 		end
 
-		-- angka
+		-- c) angka
 		p = r1
 		while true do
 			local s, e = text:find("%f[%w_]%d+%.?%d*%f[^%w_]", p)
@@ -131,7 +190,18 @@ local function apply(buf)
 			p = e + 1
 		end
 
-		-- string '...'
+		-- d) operator
+		p = r1
+		while true do
+			local s, e = text:find("[=<>!+*/%%]+", p)
+			if not s or s > r2 then
+				break
+			end
+			mark(s, e, "CfmlSqlOperator", P.sql_ident)
+			p = e + 1
+		end
+
+		-- e) string '...'
 		p = r1
 		while true do
 			local s, e = text:find("'[^'\n]*'", p)
@@ -142,7 +212,7 @@ local function apply(buf)
 			p = e + 1
 		end
 
-		-- komentar SQL --
+		-- f) komentar SQL --
 		p = r1
 		while true do
 			local s, e = text:find("%-%-[^\n]*", p)
