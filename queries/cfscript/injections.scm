@@ -16,6 +16,13 @@
   (#set! injection.language "sql")
   (#set! injection.combined))
 
+;; String biasa yang isinya SQL (mis. qTextQuery = "UPDATE ... SET ...")
+((string
+   (string_fragment) @injection.content) @_str
+ (#match? @_str "\\v\\c^.\\_s*(select\\_s\\_.*\\_sfrom\\_s|insert\\_s+into\\_s|update\\_s+\\S+\\_s+set\\_s|delete\\_s+from\\_s)")
+ (#set! injection.language "sql")
+ (#set! injection.combined))
+
 
 ;; extends
 
