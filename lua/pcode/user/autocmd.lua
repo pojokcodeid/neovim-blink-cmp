@@ -669,3 +669,34 @@ vim.api.nvim_create_autocmd("TermClose", {
 		end
 	end,
 })
+
+local ns = vim.api.nvim_create_namespace("error_line_hl")
+
+local function set_hl()
+	vim.api.nvim_set_hl(0, "ErrorLineBg", { bg = "#3a1a1f" }) -- merah tipis
+end
+set_hl()
+
+vim.api.nvim_create_autocmd("ColorScheme", { callback = set_hl })
+
+local function refresh(bufnr)
+	if not vim.api.nvim_buf_is_valid(bufnr) then
+		return
+	end
+	vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+
+	for _, d in ipairs(vim.diagnostic.get(bufnr, { severity = vim.diagnostic.severity.ERROR })) do
+		for lnum = d.lnum, (d.end_lnum or d.lnum) do
+			pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, lnum, 0, {
+				line_hl_group = "ErrorLineBg",
+				priority = 10,
+			})
+		end
+	end
+end
+
+vim.api.nvim_create_autocmd("DiagnosticChanged", {
+	callback = function(args)
+		refresh(args.buf)
+	end,
+})

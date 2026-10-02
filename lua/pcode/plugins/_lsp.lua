@@ -118,8 +118,18 @@ return {
 						map("<leader>li", "<cmd>LspInfo<cr>", "Information", "n")
 						map("<leader>lI", "<cmd>Mason<cr>", "Mason Information", "n")
 						map("<leader>la", "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action", "n")
-						map("<leader>lj", "<cmd>lua vim.diagnostic.goto_next({buffer=0})<cr>", "Next Diagnostic", "n")
-						map("<leader>lk", "<cmd>lua vim.diagnostic.goto_prev({buffer=0})<cr>", "Prev Diagnostic", "n")
+						map(
+							"<leader>lj",
+							"<cmd>lua vim.diagnostic.jump({ count = 1, float = true })<cr>",
+							"Next Diagnostic",
+							"n"
+						)
+						map(
+							"<leader>lk",
+							"<cmd>lua vim.diagnostic.jump({ count = -1, float = true })<cr>",
+							"Prev Diagnostic",
+							"n"
+						)
 						map("<leader>lr", "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename", "n")
 						map("<leader>ls", "<cmd>lua vim.lsp.buf.signature_help()<CR>", "Signature help", "n")
 						map("<leader>lq", "<cmd>lua vim.diagnostic.setloclist()<CR>", "Quickfix", "n")

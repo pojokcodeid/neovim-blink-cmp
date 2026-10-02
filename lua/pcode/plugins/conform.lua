@@ -16,7 +16,7 @@ return {
 		opts.add_new = opts.add_new or {}
 		opts.ignore = opts.ignore or {}
 		opts.format_on_save = opts.format_on_save or true
-		opts.format_timeout_ms = opts.format_timeout_ms or 5000
+		opts.format_timeout_ms = opts.format_timeout_ms or 9000
 	end,
 	config = function(_, opts)
 		require("auto-conform").setup(opts)
@@ -68,7 +68,7 @@ return {
 
 					return {
 						lsp_fallback = true,
-						timeout_ms = opts.format_timeout_ms or 5000,
+						timeout_ms = opts.format_timeout_ms or 9000,
 					}
 				end,
 			})
