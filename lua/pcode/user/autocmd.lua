@@ -670,10 +670,31 @@ vim.api.nvim_create_autocmd("TermClose", {
 	end,
 })
 
+--  start hilight error
+local function blend(foreground, background, alpha)
+	alpha = type(alpha) == "string" and (tonumber(alpha, 16) / 255) or alpha
+	local function hexToRgb(hex)
+		hex = hex:gsub("#", "")
+		return tonumber(hex:sub(1, 2), 16), tonumber(hex:sub(3, 4), 16), tonumber(hex:sub(5, 6), 16)
+	end
+	local fgR, fgG, fgB = hexToRgb(foreground)
+	local bgR, bgG, bgB = hexToRgb(background)
+
+	local r = math.floor(alpha * fgR + (1 - alpha) * bgR + 0.5)
+	local g = math.floor(alpha * fgG + (1 - alpha) * bgG + 0.5)
+	local b = math.floor(alpha * fgB + (1 - alpha) * bgB + 0.5)
+
+	return string.format("#%02x%02x%02x", r, g, b)
+end
+
+-- Menghasilkan warna 30% Dracula Red di atas background Dracula secara otomatis:
+local dracula_bg = "#282a36"
+local dracula_red = "#ff5555"
+
 local ns = vim.api.nvim_create_namespace("error_line_hl")
 
 local function set_hl()
-	vim.api.nvim_set_hl(0, "ErrorLineBg", { bg = "#3a1a1f" }) -- merah tipis
+	vim.api.nvim_set_hl(0, "ErrorLineBg", { bg = blend(dracula_red, dracula_bg, 0.05) })
 end
 set_hl()
 
