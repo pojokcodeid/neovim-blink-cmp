@@ -139,5 +139,18 @@
       "*/"
     ],
     "description": "Komentar"
+  },
+  "queryExecute2": {
+    "prefix": "queryExecute2",
+    "body": [
+      "queryExecute(",
+      "\t\"",
+      "\t\t${1:query}",
+      "\t\",",
+      "\t{coid: {value: REQUEST.SCOOKIE.COID, cfsqltype: \"CF_SQL_INTEGER\"}},",
+      "\t{datasource: request.sdsn}",
+      ");"
+    ],
+    "description": "Komentar"
   }
 }
