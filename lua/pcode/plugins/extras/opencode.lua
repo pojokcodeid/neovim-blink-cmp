@@ -218,27 +218,5 @@ return {
 			end,
 			desc = "Auto-enter terminal mode on OpenCode buffer",
 		})
-
-		vim.api.nvim_create_user_command("OpencodeKill", function()
-			local buf = find_buf()
-			if not buf then
-				vim.notify("Terminal OpenCode tidak ditemukan")
-				return
-			end
-			local job = vim.b[buf].terminal_job_id
-			if job then
-				pcall(vim.fn.jobstop, job)
-			end
-			vim.api.nvim_buf_delete(buf, { force = true })
-		end, { desc = "Kill OpenCode terminal" })
-
-		---------------------------------------------------------------------------
-		-- User commands (opsional)
-		---------------------------------------------------------------------------
-		vim.api.nvim_create_user_command("OpencodeToggle", toggle, { desc = "Toggle OpenCode terminal" })
-		vim.api.nvim_create_user_command("OpencodeDebug", function()
-			settings.debug = not settings.debug
-			vim.notify("OpenCode debug: " .. tostring(settings.debug))
-		end, { desc = "Toggle OpenCode event debug" })
 	end,
 }
