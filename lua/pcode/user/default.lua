@@ -22,7 +22,7 @@ pcode.lang = {
 -- activate config extras
 pcode.extras = {
 	autosave = false,
-	opencode = false,
+	opencode = true,
 	bigfiles = false,
 	blinkripgrep = true,
 	bufferline = true,
@@ -51,7 +51,7 @@ pcode.extras = {
 	rainbowdelimiters = false,
 	refactoring = false,
 	rest = true,
-	scrollview = false,
+	scrollview = true,
 	showkeys = false,
 	smartsplit = true,
 	startuptime = false,

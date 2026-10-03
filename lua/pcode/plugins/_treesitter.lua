@@ -2,8 +2,17 @@ return {
 	{
 		"nvim-treesitter/nvim-treesitter",
 		branch = "main",
-		event = "BufRead",
-		lazy = false, -- branch main TIDAK mendukung lazy-loading
+		event = "VeryLazy",
+		-- lazy = false, -- branch main TIDAK mendukung lazy-loading
+		cmd = {
+			"TSInstall",
+			"TSInstallSync",
+			"TSUpdate",
+			"TSUpdateSync",
+			"TSUninstall",
+			"TSUninstallInfo",
+			"TSInstallFromGrammar",
+		},
 		build = ":TSUpdate",
 		config = function()
 			-- daftarkan parser custom CFML SEBELUM :TSUpdate dipanggil
@@ -31,11 +40,11 @@ return {
 					}
 				end,
 			})
-
-			require("nvim-treesitter").setup({})
+			local ts = require("nvim-treesitter")
+			ts.setup({})
 
 			-- install parser yang dibutuhkan
-			require("nvim-treesitter").install({
+			ts.install({
 				"lua",
 				"luadoc",
 				"printf",
@@ -50,32 +59,15 @@ return {
 				"sql",
 			})
 
-			local ts_filetypes = {
-				"lua",
-				"vim",
-				"vimdoc",
-				"javascript",
-				"typescript",
-				"typescriptreact",
-				"javascriptreact",
-				"html",
-				"cfml",
-				"cfscript",
-				"sql",
-			}
-
+			local ts_filetypes = ts.get_installed(true)
 			-- filetype yang PUNYA query indent lengkap (bukan cfml/cfscript)
-			local ts_indent_filetypes = {
-				"lua",
-				"vim",
-				"vimdoc",
-				"javascript",
-				"typescript",
-				"typescriptreact",
-				"javascriptreact",
-				"html",
-				"sql",
-			}
+			local keys_to_delete = { "cfml", "cfscript" }
+			local ts_indent_filetypes = {}
+			for _, key in ipairs(keys_to_delete) do
+				if ts_filetypes[key] ~= nil then
+					ts_indent_filetypes[key] = ts_filetypes[key]
+				end
+			end
 
 			-- highlight
 			vim.api.nvim_create_autocmd("FileType", {
@@ -112,7 +104,81 @@ return {
 			})
 
 			vim.api.nvim_create_user_command("TSInstallInfo", function()
-				vim.cmd("Telescope treesitter_info")
+				local ts = require("nvim-treesitter")
+				local pickers = require("telescope.pickers")
+				local finders = require("telescope.finders")
+				local conf = require("telescope.config").values
+				local actions = require("telescope.actions")
+				local action_state = require("telescope.actions.state")
+
+				local function build_results()
+					local installed = {}
+					for _, lang in ipairs(ts.get_installed()) do
+						installed[lang] = true
+					end
+
+					local results = {}
+					for _, lang in ipairs(ts.get_available()) do
+						table.insert(results, { lang = lang, installed = installed[lang] or false })
+					end
+
+					-- yang sudah ter-install tampil di atas
+					table.sort(results, function(a, b)
+						if a.installed ~= b.installed then
+							return a.installed
+						end
+						return a.lang < b.lang
+					end)
+					return results
+				end
+
+				local function make_finder()
+					return finders.new_table({
+						results = build_results(),
+						entry_maker = function(e)
+							return {
+								value = e,
+								ordinal = e.lang,
+								display = (e.installed and "✓ " or "  ") .. e.lang,
+							}
+						end,
+					})
+				end
+
+				pickers
+					.new({}, {
+						prompt_title = "Treesitter Parsers (Enter: install / uninstall)",
+						finder = make_finder(),
+						sorter = conf.generic_sorter({}),
+						attach_mappings = function(bufnr)
+							actions.select_default:replace(function()
+								local sel = action_state.get_selected_entry()
+								if not sel then
+									return
+								end
+								local lang = sel.value.lang
+
+								actions.close(bufnr)
+
+								-- cek ulang status terkini, bukan dari hasil yang mungkin sudah usang
+								local is_installed = vim.list_contains(ts.get_installed(), lang)
+
+								if is_installed then
+									vim.notify("Uninstalling parser: " .. lang, vim.log.levels.INFO)
+									ts.uninstall({ lang }):await(function()
+										vim.notify("Parser uninstalled: " .. lang, vim.log.levels.INFO)
+									end)
+								else
+									vim.notify("Installing parser: " .. lang, vim.log.levels.INFO)
+									ts.install({ lang }):await(function()
+										vim.notify("Parser installed: " .. lang, vim.log.levels.INFO)
+									end)
+								end
+							end)
+							return true
+						end,
+					})
+					:find()
 			end, {})
 		end,
 	},
