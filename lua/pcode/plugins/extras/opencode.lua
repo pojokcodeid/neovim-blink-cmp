@@ -113,7 +113,7 @@ return {
 		---------------------------------------------------------------------------
 		local map = vim.keymap.set
 
-		map({ "n", "x" }, "<leader>o", "", { desc = "OpenCode" })
+		map("n", "<leader>o", "", { desc = "+OpenCode" })
 		map({ "n", "x" }, "<leader>oa", function()
 			if settings.auto_open then
 				ensure_visible()
