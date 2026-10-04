@@ -74,10 +74,38 @@ return {
 			local option = {}
 			local installed_servers = require("mason-lspconfig").get_installed_servers()
 			vim.list_extend(installed_servers, { "cfml" })
-			vim.diagnostic.config({ virtual_lines = { current_line = true } })
+
+			-- Underline hanya 1 kata (kata pertama di posisi diagnostic)
+			local orig_underline = vim.diagnostic.handlers.underline
+
+			vim.diagnostic.handlers.underline = {
+				show = function(namespace, bufnr, diagnostics, opt)
+					local narrowed = {}
+					for _, d in ipairs(diagnostics) do
+						local nd = vim.deepcopy(d)
+						local line = vim.api.nvim_buf_get_lines(bufnr, d.lnum, d.lnum + 1, false)[1] or ""
+						local rest = line:sub(d.col + 1)
+						local spaces = #(rest:match("^%s*") or "")
+						local word = rest:sub(spaces + 1):match("^[%w_]+")
+						if word then
+							nd.col = d.col + spaces
+							nd.end_lnum = d.lnum
+							nd.end_col = nd.col + #word
+						end
+						table.insert(narrowed, nd)
+					end
+					orig_underline.show(namespace, bufnr, narrowed, opt)
+				end,
+				hide = orig_underline.hide,
+			}
+			-- vim.diagnostic.config({ virtual_lines = { current_line = true } })
 			vim.diagnostic.config({
-				underline = false,
-				virtual_text = false,
+				underline = true,
+				-- virtual_text = false, -- jika mengactivekan virtual line set jadi false
+				virtual_text = {
+					prefix = "■", -- Could be '', '■', '▎', etc.
+					spacing = 2,
+				},
 				update_in_insert = false,
 				severity_sort = true,
 				signs = {
