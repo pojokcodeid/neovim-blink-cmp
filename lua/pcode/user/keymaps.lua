@@ -34,7 +34,11 @@ keymap("x", "<S-M-Up>", ":'<,'>t-1<cr>", opts)
 
 -- move text up and down
 keymap("x", "<A-Down>", ":move '>+1<CR>gv-gv", opts)
+keymap("n", "<A-Down>", ":move '>+1<CR>gv-gv", opts)
+keymap("i", "<A-Down>", ":move '>+1<CR>gv-gv", opts)
 keymap("x", "<A-Up>", ":move '<-2<CR>gv-gv", opts)
+keymap("n", "<A-Up>", ":move '<-2<CR>gv-gv", opts)
+keymap("i", "<A-Up>", ":move '<-2<CR>gv-gv", opts)
 keymap("n", "<M-Down>", "<cmd>m+<cr>", opts)
 keymap("i", "<M-Down>", "<cmd>m+<cr>", opts)
 keymap("n", "<M-Up>", "<cmd>m-2<cr>", opts)
