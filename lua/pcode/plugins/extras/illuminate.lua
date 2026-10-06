@@ -10,6 +10,9 @@ M.opts = {
 		providers = { "lsp" },
 	},
 	filetypes_denylist = {
+		"dropbar_menu",
+		"dropbar_menu_fzf",
+		"mason",
 		"mason",
 		"harpoon",
 		"DressingInput",

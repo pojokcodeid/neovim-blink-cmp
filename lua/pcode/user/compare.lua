@@ -198,6 +198,23 @@ function M.compare_files()
 end
 
 -- ------------------------------------------------------------
+-- Color hilight
+-- ------------------------------------------------------------
+vim.opt.diffopt = {
+	"internal",
+	"filler",
+	"closeoff",
+	"vertical",
+	"algorithm:histogram",
+	"indent-heuristic",
+	"linematch:60",
+}
+
+vim.api.nvim_set_hl(0, "DiffAdd", { bg = "#1e3a2a" })
+vim.api.nvim_set_hl(0, "DiffDelete", { bg = "#3a1e1e", fg = "#5c2a2a" })
+vim.api.nvim_set_hl(0, "DiffChange", { bg = "#2a2a3a" })
+vim.api.nvim_set_hl(0, "DiffText", { bg = "#3d3d6b" })
+-- ------------------------------------------------------------
 -- Command & keymap
 -- ------------------------------------------------------------
 vim.api.nvim_create_user_command("CompareFiles", M.compare_files, {})
