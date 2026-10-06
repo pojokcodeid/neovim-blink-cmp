@@ -1,6 +1,6 @@
 return {
 	"Bekaboo/dropbar.nvim",
-	-- optional, but required for fuzzy finder support
+	event = "VeryLazy",
 	dependencies = {
 		{
 			"nvim-telescope/telescope-fzf-native.nvim",
@@ -8,6 +8,13 @@ return {
 		},
 	},
 	opts = {
+		icons = {
+			kinds = {
+				dir_icon = function(_)
+					return " ", "NvimTreeFolderIcon"
+				end,
+			},
+		},
 		bar = {
 			padding = { left = 2, right = 2 }, -- margin kiri/kanan breadcrumb
 		},
