@@ -99,5 +99,10 @@ return {
 	config = function(_, opts)
 		require("dracula").setup(opts)
 		vim.cmd("colorscheme dracula")
+		vim.api.nvim_create_autocmd("ColorScheme", {
+			callback = function()
+				vim.g.terminal_color_8 = "#7a8499"
+			end,
+		})
 	end,
 }

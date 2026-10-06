@@ -19,7 +19,7 @@ return {
 				padding = { left = 1, right = 2 }, -- margin teks di dalam menu
 			},
 			win_configs = {
-				border = "single",
+				border = "rounded",
 			},
 		},
 	},
