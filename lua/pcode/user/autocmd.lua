@@ -606,7 +606,7 @@ local function cflint_check()
 				vim.fn.setqflist(qf_items, "r")
 				vim.fn.setqflist({}, "a", { title = "CFLint - " .. filename })
 				if #qf_items > 0 then
-					vim.cmd("copen")
+					vim.cmd("belowright copen")
 				else
 					vim.notify("CFLint: tidak ada error ditemukan.", vim.log.levels.INFO)
 				end
@@ -719,5 +719,15 @@ end
 vim.api.nvim_create_autocmd("DiagnosticChanged", {
 	callback = function(args)
 		refresh(args.buf)
+	end,
+})
+
+-- config supaya quickfix tidak ambil selebar window
+vim.api.nvim_create_autocmd("VimEnter", {
+	callback = function()
+		vim.cmd([[
+      silent! aunmenu PopUp.Show\ All\ Diagnostics
+      anoremenu 500 PopUp.Show\ All\ Diagnostics <Cmd>lua vim.diagnostic.setqflist({ open = false }); vim.cmd("belowright copen")<CR>
+    ]])
 	end,
 })

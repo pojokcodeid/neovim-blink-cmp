@@ -92,6 +92,32 @@ local function close_current()
 		require("pcode.user.buffer").bufremove()
 	end
 end
+
+--- focus setelah embuka error list clik
+local function focus_tab(buffer, button)
+	if button ~= "l" then
+		return
+	end
+	vim.schedule(function()
+		-- Dari quickfix/trouble/dll: kembali ke window file sebelumnya
+		if vim.bo.buftype ~= "" or not is_editor_win(vim.api.nvim_get_current_win()) then
+			local prev = vim.fn.win_getid(vim.fn.winnr("#"))
+			if prev ~= 0 and is_editor_win(prev) and vim.bo[vim.api.nvim_win_get_buf(prev)].buftype == "" then
+				vim.api.nvim_set_current_win(prev)
+			else
+				for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+					if is_editor_win(win) and vim.bo[vim.api.nvim_win_get_buf(win)].buftype == "" then
+						vim.api.nvim_set_current_win(win)
+						break
+					end
+				end
+			end
+		end
+		if vim.api.nvim_buf_is_valid(buffer.number) then
+			vim.api.nvim_win_set_buf(0, buffer.number)
+		end
+	end)
+end
 return {
 	"willothy/nvim-cokeline",
 	branch = "main",
@@ -157,12 +183,18 @@ return {
 					fg = function(buffer)
 						return buffer.devicon.color
 					end,
+					on_click = function(_, _, button, _, buffer)
+						focus_tab(buffer, button)
+					end,
 					bg = function(buffer)
 						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
 					end,
 				},
 				{
 					text = " ",
+					on_click = function(_, _, button, _, buffer)
+						focus_tab(buffer, button)
+					end,
 					bg = function(buffer)
 						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
 					end,
@@ -173,6 +205,9 @@ return {
 					end,
 					style = function(buffer)
 						return buffer.is_focused and "bold" or nil
+					end,
+					on_click = function(_, _, button, _, buffer)
+						focus_tab(buffer, button)
 					end,
 					bg = function(buffer)
 						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
