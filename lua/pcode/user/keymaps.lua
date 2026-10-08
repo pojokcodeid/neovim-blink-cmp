@@ -83,9 +83,22 @@ keymap("n", "<C-_>", function()
 	end)
 end, opts)
 
+-- refresh tree
+local refreshTree = function()
+	local ok, api = pcall(require, "nvim-tree.api")
+	if ok and api.tree.is_visible() then
+		vim.defer_fn(function()
+			api.tree.reload()
+		end, 100)
+	end
+	vim.cmd("NvimTreeFindFileToggle")
+end
 -- close windows
 keymap("n", "q", "<cmd>q<cr>", opts)
-keymap("n", "f", "<cmd>NvimTreeFindFileToggle<cr><cr><Up>", opts)
+-- keymap("n", "f", "<cmd>NvimTreeFindFileToggle<cr><cr><Up>", opts
+keymap("n", "f", function()
+	refreshTree()
+end, opts)
 
 -- window navigation
 keymap("n", "<c-h>", "<C-w>h", opts)
