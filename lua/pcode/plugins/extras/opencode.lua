@@ -44,15 +44,8 @@ return {
 			vim.api.nvim_win_set_width(0, math.floor(vim.o.columns * settings.width_ratio))
 		end
 
-		-- Buka terminal baru (dipakai juga oleh plugin sebagai server.start)
-		local function start()
-			local cur = vim.api.nvim_get_current_win()
-			vim.cmd("botright vsplit term://opencode")
-			set_width()
-			vim.api.nvim_set_current_win(cur) -- fokus tetap di editor
-		end
-
 		-- Tampilkan terminal yang sudah ada tanpa mengambil fokus
+		-- (didefinisikan sebelum start() supaya bisa dipanggil olehnya)
 		local function show()
 			local buf = find_buf()
 			if not buf or find_win() then
@@ -63,6 +56,19 @@ return {
 			vim.api.nvim_win_set_buf(0, buf)
 			set_width()
 			vim.api.nvim_set_current_win(cur)
+		end
+
+		-- Buka terminal baru (dipakai juga oleh plugin sebagai server.start).
+		-- Idempoten: kalau terminal sudah ada, tidak membuat yang kedua.
+		local function start()
+			if find_buf() then
+				show()
+				return
+			end
+			local cur = vim.api.nvim_get_current_win()
+			vim.cmd("botright vsplit term://opencode")
+			set_width()
+			vim.api.nvim_set_current_win(cur) -- fokus tetap di editor
 		end
 
 		-- Pastikan terminal terlihat: tampilkan kalau tersembunyi, buat kalau belum ada
