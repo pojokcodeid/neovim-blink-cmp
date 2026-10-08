@@ -83,22 +83,33 @@ keymap("n", "<C-_>", function()
 	end)
 end, opts)
 
--- refresh tree
+local function tree_win()
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		local buf = vim.api.nvim_win_get_buf(win)
+		if vim.bo[buf].filetype == "NvimTree" then
+			return win
+		end
+	end
+end
+
 local refreshTree = function()
 	local ok, api = pcall(require, "nvim-tree.api")
-	if ok and api.tree.is_visible() then
-		vim.defer_fn(function()
-			api.tree.reload()
-		end, 100)
+	if not ok then
+		return
 	end
-	vim.cmd("NvimTreeFindFileToggle")
+
+	-- cek berdasarkan filetype, lebih andal untuk float window
+	if tree_win() then
+		api.tree.close()
+	else
+		api.tree.open({ find_file = true, focus = true })
+		api.tree.reload() -- refresh setelah terbuka
+	end
 end
+
+keymap("n", "f", refreshTree, opts)
 -- close windows
 keymap("n", "q", "<cmd>q<cr>", opts)
--- keymap("n", "f", "<cmd>NvimTreeFindFileToggle<cr><cr><Up>", opts
-keymap("n", "f", function()
-	refreshTree()
-end, opts)
 
 -- window navigation
 keymap("n", "<c-h>", "<C-w>h", opts)
