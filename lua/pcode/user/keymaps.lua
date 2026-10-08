@@ -206,3 +206,11 @@ end, opts)
 
 vim.keymap.set("n", "]q", "<cmd>cnext<cr>zz", { desc = "Next quickfix" })
 vim.keymap.set("n", "[q", "<cmd>cprev<cr>zz", { desc = "Prev quickfix" })
+
+-- keymap for bg run
+-- opsional: keymap
+vim.keymap.set("n", "<leader>j", "", { desc = "Run" })
+vim.keymap.set("n", "<leader>jr", "<cmd>BgRun<cr>", { desc = "BG run" })
+vim.keymap.set("n", "<leader>jl", "<cmd>BgList<cr>", { desc = "BG status/history" })
+vim.keymap.set("n", "<leader>jg", "<cmd>BgLog<cr>", { desc = "BG log" })
+vim.keymap.set("n", "<leader>js", "<cmd>BgStop<cr>", { desc = "BG stop" })

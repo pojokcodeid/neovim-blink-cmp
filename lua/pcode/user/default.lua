@@ -99,4 +99,4 @@ pcode.transparent = true
 pcode.localcode = false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true
-pcode.nvimtree_float = false
+pcode.nvimtree_float=true
