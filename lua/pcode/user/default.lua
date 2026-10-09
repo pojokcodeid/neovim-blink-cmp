@@ -64,7 +64,7 @@ pcode.extras = {
 	treesittercontex = false,
 	verticalcolumn = true,
 	visualmulti = true,
-	yanky = true,
+	yanky = false,
 	zenmode = false,
 }
 -- activate config themes

@@ -1,298 +1,364 @@
+-- ============================================================================
+-- Autocmds & user commands
+-- ============================================================================
 local api = vim.api
+local fn = vim.fn
+local notify = vim.notify
+local levels = vim.log.levels
 
--- Pengaturan umum
-api.nvim_create_augroup("_general_settings", { clear = true })
-
-api.nvim_create_autocmd("FileType", {
-	group = "_general_settings",
-	pattern = "qf",
-	command = "set nobuflisted", -- Mengatur buffer agar tidak terdaftar di buffer list
-})
-
--- Pengaturan Git
-api.nvim_create_augroup("_git", { clear = true }) -- Membuat grup autocommand untuk git
-api.nvim_create_autocmd("FileType", {
-	group = "_git",
-	pattern = "gitcommit",
-	command = "setlocal wrap spell", -- Mengatur wrap dan spell check untuk file git commit
-})
-
--- Pengaturan Markdown
-api.nvim_create_augroup("_markdown", { clear = true }) -- Membuat grup autocommand untuk markdown
-api.nvim_create_autocmd("FileType", {
-	group = "_markdown",
-	pattern = "markdown",
-	command = "setlocal wrap spell", -- Mengatur wrap dan spell check untuk file markdown
-})
-
--- Pengaturan Auto Resize
-api.nvim_create_augroup("_auto_resize", { clear = true }) -- Membuat grup autocommand untuk auto resize
-api.nvim_create_autocmd("VimResized", {
-	group = "_auto_resize",
-	command = "tabdo wincmd =", -- Menyesuaikan ukuran window saat Vim di-resize
-})
-
--- Pengaturan Alpha
-api.nvim_create_augroup("_alpha", { clear = true }) -- Membuat grup autocommand untuk alpha
-api.nvim_create_autocmd("User", {
-	group = "_alpha",
-	pattern = "AlphaReady",
-	command = "set showtabline=0 | autocmd BufUnload <buffer> set showtabline=2", -- Menyembunyikan tabline saat alpha siap dan menampilkan kembali saat buffer di-unload
-})
-
--- Pengaturan Terminal
-api.nvim_create_augroup("neovim_terminal", { clear = true }) -- Membuat grup autocommand untuk terminal
-api.nvim_create_autocmd("TermOpen", {
-	group = "neovim_terminal",
-	command = "startinsert | set nonumber norelativenumber | nnoremap <buffer> <C-c> i<C-c>", -- Memasuki mode insert secara otomatis dan menonaktifkan nomor baris di buffer terminal
-})
-api.nvim_create_autocmd("FileType", {
-	group = "neovim_terminal",
-	pattern = "checkhealth",
-	command = "startinsert | set nonumber norelativenumber | nnoremap <buffer> <C-c> i<C-c>", -- Memasuki mode insert secara otomatis dan menonaktifkan nomor baris di buffer terminal
-})
-
--- Fungsi untuk Membuat Direktori yang Tidak Ada pada BufWrite
-local function MkNonExDir(file, buf)
-	if vim.fn.empty(vim.fn.getbufvar(buf, "&buftype")) == 1 and not string.match(file, "^%w+://") then
-		local dir = vim.fn.fnamemodify(file, ":h")
-		if vim.fn.isdirectory(dir) == 0 then
-			vim.fn.mkdir(dir, "p") -- Membuat direktori jika tidak ada
-		end
-	end
+--- Membuat augroup (selalu di-clear agar tidak menumpuk saat config di-reload)
+local function augroup(name)
+	return api.nvim_create_augroup(name, { clear = true })
 end
 
-api.nvim_create_augroup("BWCCreateDir", { clear = true }) -- Membuat grup autocommand untuk membuat direktori
-api.nvim_create_autocmd("BufWritePre", {
-	group = "BWCCreateDir",
-	callback = function(_)
-		MkNonExDir(vim.fn.expand("<afile>"), vim.fn.expand("<abuf>")) -- Memanggil fungsi untuk membuat direktori yang tidak ada sebelum menyimpan buffer
+local autocmd = api.nvim_create_autocmd
+
+-- ============================================================================
+-- Pengaturan umum
+-- ============================================================================
+local general = augroup("_general_settings")
+
+-- Quickfix tidak ditampilkan di buffer list
+autocmd("FileType", {
+	group = general,
+	pattern = "qf",
+	callback = function()
+		vim.opt_local.buflisted = false
 	end,
 })
 
--- config cursor
-vim.opt.guicursor = {
-	"n-v:block", -- Normal, Visual, Command mode: block cursor
-	"i-ci-ve-c:ver25", -- Insert, Command-line Insert, Visual mode: vertical bar cursor
-	"r-cr:hor20", -- Replace, Command-line Replace mode: horizontal bar cursor
-	"o:hor50", -- Operator-pending mode: horizontal bar cursor
-	"a:blinkwait700-blinkoff400-blinkon250", -- Blinking settings
-	"sm:block-blinkwait175-blinkoff150-blinkon175", -- Select mode: block cursor with blinking
-}
-
-vim.api.nvim_create_autocmd("ExitPre", {
-	group = vim.api.nvim_create_augroup("Exit", { clear = true }),
-	command = "set guicursor=n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50,a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,sm:block-blinkwait175-blinkoff150-blinkon175,a:ver90",
-	desc = "Set cursor back to beam when leaving Neovim.",
+-- Wrap & spell check untuk commit git dan markdown
+autocmd("FileType", {
+	group = augroup("_wrap_spell"),
+	pattern = { "gitcommit", "markdown" },
+	callback = function()
+		vim.opt_local.wrap = true
+		vim.opt_local.spell = true
+	end,
 })
 
-vim.api.nvim_create_user_command("TSIsInstalled", function()
-	local parsers = require("nvim-treesitter.info").installed_parsers()
-	table.sort(parsers)
-	local choices = {}
-	local lookup = {}
+-- Samakan ukuran window saat Vim di-resize
+autocmd("VimResized", {
+	group = augroup("_auto_resize"),
+	command = "tabdo wincmd =",
+})
 
-	for _, parser in ipairs(parsers) do
-		local label = "[✓] " .. parser
-		table.insert(choices, label)
-		lookup[label] = parser
+-- Tab size 4 untuk JavaScript / TypeScript
+autocmd("FileType", {
+	group = augroup("_tabsize"),
+	pattern = { "javascript", "typescript" },
+	callback = function()
+		vim.opt_local.tabstop = 4
+		vim.opt_local.shiftwidth = 4
+	end,
+})
+
+-- Highlight teks saat yank
+autocmd("TextYankPost", {
+	group = augroup("YankHighlight"),
+	callback = function()
+		(vim.hl or vim.highlight).on_yank({ higroup = "IncSearch", timeout = 300 })
+	end,
+})
+
+-- Buat direktori yang belum ada sebelum menyimpan file
+autocmd("BufWritePre", {
+	group = augroup("BWCCreateDir"),
+	callback = function(args)
+		if vim.bo[args.buf].buftype ~= "" or args.match:match("^%w+://") then
+			return
+		end
+		-- mkdir "p" tidak error jika direktori sudah ada
+		fn.mkdir(fn.fnamemodify(args.match, ":h"), "p")
+	end,
+})
+
+-- Nonaktifkan CTRL+SHIFT+Drag Mouse
+for _, key in ipairs({ "<C-S-LeftMouse>", "<C-S-LeftDrag>", "<C-S-LeftRelease>" }) do
+	vim.keymap.set("", key, "<Nop>", { silent = true })
+end
+
+-- ============================================================================
+-- Alpha (dashboard): sembunyikan tabline selama dashboard aktif
+-- ============================================================================
+autocmd("User", {
+	group = augroup("_alpha"),
+	pattern = "AlphaReady",
+	callback = function()
+		vim.o.showtabline = 0
+		autocmd("BufUnload", {
+			buffer = api.nvim_get_current_buf(),
+			once = true,
+			callback = function()
+				vim.o.showtabline = 2
+			end,
+		})
+	end,
+})
+
+-- ============================================================================
+-- Terminal
+-- ============================================================================
+local term_group = augroup("neovim_terminal")
+
+local function setup_terminal_buffer()
+	vim.cmd("startinsert")
+	vim.opt_local.number = false
+	vim.opt_local.relativenumber = false
+	vim.keymap.set("n", "<C-c>", "i<C-c>", { buffer = true })
+end
+
+autocmd("TermOpen", { group = term_group, callback = setup_terminal_buffer })
+autocmd("FileType", { group = term_group, pattern = "checkhealth", callback = setup_terminal_buffer })
+
+-- Refresh nvim-tree setelah lazygit ditutup
+autocmd("TermClose", {
+	group = augroup("_lazygit_refresh"),
+	pattern = "*lazygit*",
+	callback = function()
+		local ok, tree_api = pcall(require, "nvim-tree.api")
+		if ok and tree_api.tree.is_visible() then
+			vim.defer_fn(tree_api.tree.reload, 100)
+		end
+	end,
+})
+
+-- ============================================================================
+-- Cursor
+-- ============================================================================
+vim.opt.guicursor = {
+	"n-v:block", -- Normal, Visual: block
+	"i-ci-ve-c:ver25", -- Insert, Cmdline-insert, Visual-exclude, Command: bar vertikal
+	"r-cr:hor20", -- Replace: bar horizontal
+	"o:hor50", -- Operator-pending: bar horizontal
+	"a:blinkwait700-blinkoff400-blinkon250", -- Blinking semua mode
+	"sm:block-blinkwait175-blinkoff150-blinkon175", -- Showmatch
+}
+
+-- Kembalikan cursor menjadi beam saat keluar dari Neovim
+autocmd("ExitPre", {
+	group = augroup("Exit"),
+	desc = "Set cursor back to beam when leaving Neovim.",
+	callback = function()
+		vim.o.guicursor = "n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50,"
+			.. "a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,"
+			.. "sm:block-blinkwait175-blinkoff150-blinkon175,a:ver90"
+	end,
+})
+
+-- ============================================================================
+-- Highlight baris error
+-- ============================================================================
+local function hex_to_rgb(hex)
+	hex = hex:gsub("#", "")
+	return tonumber(hex:sub(1, 2), 16), tonumber(hex:sub(3, 4), 16), tonumber(hex:sub(5, 6), 16)
+end
+
+--- Campur dua warna hex. `alpha` bisa angka 0-1 atau string hex "00"-"ff".
+local function blend(foreground, background, alpha)
+	alpha = type(alpha) == "string" and (tonumber(alpha, 16) / 255) or alpha
+	local fr, fg, fb = hex_to_rgb(foreground)
+	local br, bg, bb = hex_to_rgb(background)
+
+	local function mix(f, b)
+		return math.floor(alpha * f + (1 - alpha) * b + 0.5)
 	end
 
-	vim.ui.select(choices, {
+	return string.format("#%02x%02x%02x", mix(fr, br), mix(fg, bg), mix(fb, bb))
+end
+
+local ERROR_BG, ERROR_FG, ERROR_ALPHA = "#282a36", "#ff5555", 0.05 -- Dracula
+local error_ns = api.nvim_create_namespace("error_line_hl")
+
+local function set_error_hl()
+	api.nvim_set_hl(0, "ErrorLineBg", { bg = blend(ERROR_FG, ERROR_BG, ERROR_ALPHA) })
+end
+set_error_hl()
+
+local diag_group = augroup("_error_line_hl")
+autocmd("ColorScheme", { group = diag_group, callback = set_error_hl })
+
+autocmd("DiagnosticChanged", {
+	group = diag_group,
+	callback = function(args)
+		local bufnr = args.buf
+		if not api.nvim_buf_is_valid(bufnr) then
+			return
+		end
+		api.nvim_buf_clear_namespace(bufnr, error_ns, 0, -1)
+
+		for _, d in ipairs(vim.diagnostic.get(bufnr, { severity = vim.diagnostic.severity.ERROR })) do
+			for lnum = d.lnum, d.end_lnum or d.lnum do
+				pcall(api.nvim_buf_set_extmark, bufnr, error_ns, lnum, 0, {
+					line_hl_group = "ErrorLineBg",
+					priority = 10,
+				})
+			end
+		end
+	end,
+})
+
+-- Quickfix dari popup menu tidak selebar window
+autocmd("VimEnter", {
+	group = augroup("_popup_diagnostics"),
+	callback = function()
+		vim.cmd([[
+			silent! aunmenu PopUp.Show\ All\ Diagnostics
+			anoremenu 500 PopUp.Show\ All\ Diagnostics <Cmd>lua vim.diagnostic.setqflist({ open = false }); vim.cmd("belowright copen")<CR>
+		]])
+	end,
+})
+
+-- ============================================================================
+-- User command: Treesitter
+-- ============================================================================
+api.nvim_create_user_command("TSIsInstalled", function()
+	local parsers = require("nvim-treesitter.info").installed_parsers()
+	table.sort(parsers)
+
+	vim.ui.select(parsers, {
 		prompt = "Uninstall Treesitter",
+		format_item = function(parser)
+			return "[✓] " .. parser
+		end,
 	}, function(choice)
 		if choice then
-			local parser_name = lookup[choice]
-			if parser_name then
-				vim.cmd("TSUninstall " .. parser_name)
-			end
+			vim.cmd("TSUninstall " .. choice)
 		end
 	end)
 end, {})
 
--- custom user command
+-- ============================================================================
+-- User command: PCode (add/remove fitur), Theme, Config
+-- ============================================================================
 local editor = require("pcode.core.default_editor")
 local registry = require("pcode.core.theme_registry")
 
--- Fungsi untuk menggabungkan dua table
-local function gabungTable(a, b)
-	local hasil = {}
-	-- masukkan isi table pertama
-	for i = 1, #a do
-		table.insert(hasil, a[i])
+--- Kumpulkan "<label> => <key>" dari `tbl` yang statusnya sama dengan `enabled`.
+--- `strict` = hanya nilai boolean murni yang dihitung (abaikan sub-table).
+local function collect(tbl, label, enabled, strict)
+	local out = {}
+	for key, value in pairs(tbl) do
+		local match
+		if strict then
+			match = (value == enabled)
+		else
+			match = (value and true or false) == enabled
+		end
+		if match then
+			out[#out + 1] = label .. " => " .. key
+		end
 	end
-	-- masukkan isi table kedua
-	for i = 1, #b do
-		table.insert(hasil, b[i])
-	end
-	return hasil
+	table.sort(out)
+	return out
 end
 
--- extras data
-local noinstalextras = {}
-local instaledextras = {}
-local extras = pcode.extras or {}
-for key, value in pairs(extras) do
-	if value then
-		table.insert(instaledextras, "Extras => " .. key)
-	else
-		table.insert(noinstalextras, "Extras => " .. key)
-	end
+--- Daftar kandidat completion; dihitung saat dibutuhkan (bukan saat startup).
+local function feature_candidates(enabled)
+	local conf = _G.pcode or {}
+	local items = collect(conf.extras or {}, "Extras", enabled)
+	vim.list_extend(items, collect(conf, "Conf", enabled, true))
+	vim.list_extend(items, collect(conf.lang or {}, "Lang", enabled))
+	return items
 end
-table.sort(noinstalextras)
-table.sort(instaledextras)
--- end exptras
 
--- lang data
-local noinstallang = {}
-local instaledlang = {}
-local langs = pcode.lang or {}
-for key, value in pairs(langs) do
-	if value then
-		table.insert(instaledlang, "Lang => " .. key)
-	else
-		table.insert(noinstallang, "Lang => " .. key)
-	end
+--- Hapus prefix "Extras =>", "Lang =>", "Conf =>" dari argumen.
+local function clean_feature(arg)
+	return vim.trim((arg:gsub("^%a+%s*=>%s*", "")))
 end
-table.sort(noinstallang)
-table.sort(instaledlang)
 
--- activate data
-local noactivateds = {}
-local activateds = {}
-local activate = pcode or {}
-for key, value in pairs(activate) do
-	if value == true then
-		table.insert(activateds, "Conf => " .. key)
-	elseif value == false then
-		table.insert(noactivateds, "Conf => " .. key)
-	end
-end
-table.sort(noactivateds)
-table.sort(activateds)
+local FEATURE_MESSAGES = {
+	[true] = { conf = "Config activated", extra = "Extra activated", lang = "Lang activated" },
+	[false] = { conf = "Config inactive", extra = "Extra removed", lang = "Lang removed" },
+}
 
-local gabungan = gabungTable(noinstalextras, noactivateds)
-gabungan = gabungTable(gabungan, noinstallang)
-
-local gabungInstalled = gabungTable(instaledextras, activateds)
-gabungInstalled = gabungTable(gabungInstalled, instaledlang)
-
--- set extras user command
-vim.api.nvim_create_user_command("PCodeAdd", function(opts)
-	local groupTabel = "pcode"
-	local groupTabel2 = "pcode.extras"
-	local groupTabel3 = "pcode.lang"
-	local fitur = opts.args
-	fitur = string.gsub(fitur, "Lang%s*=>%s*", "")
-	fitur = string.gsub(fitur, "Extras%s*=>%s*", "")
-	fitur = string.gsub(fitur, "Conf%s*=>%s*", "")
-
+local function set_feature(fitur, enabled)
 	if fitur == "" then
-		vim.notify("Gunakan :PCodeAdd <nama_plugin>", vim.log.levels.WARN)
+		notify("Gunakan :" .. (enabled and "PCodeAdd" or "PCodeRemove") .. " <nama_plugin>", levels.WARN)
 		return
 	end
 
-	if editor.set_dot_value(groupTabel .. "." .. fitur, true) then
-		vim.notify(
-			"Config activated: " .. fitur .. "\n Please restart Neovim",
-			vim.log.levels.INFO,
-			{ title = groupTabel }
-		)
-	elseif editor.set_table_value(groupTabel2, fitur, true) then
-		vim.notify(
-			"Extra activated: " .. fitur .. "\n Please restart Neovim",
-			vim.log.levels.INFO,
-			{ title = groupTabel }
-		)
-	elseif editor.set_table_value(groupTabel3, fitur, true) then
-		vim.notify(
-			"Lang activated: " .. fitur .. "\n Please restart Neovim",
-			vim.log.levels.INFO,
-			{ title = groupTabel }
-		)
-	else
-		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
+	local msg = FEATURE_MESSAGES[enabled]
+	local targets = {
+		{
+			msg.conf,
+			function()
+				return editor.set_dot_value("pcode." .. fitur, enabled)
+			end,
+		},
+		{
+			msg.extra,
+			function()
+				return editor.set_table_value("pcode.extras", fitur, enabled)
+			end,
+		},
+		{
+			msg.lang,
+			function()
+				return editor.set_table_value("pcode.lang", fitur, enabled)
+			end,
+		},
+	}
+
+	for _, target in ipairs(targets) do
+		if target[2]() then
+			notify(target[1] .. ": " .. fitur .. "\n Please restart Neovim", levels.INFO, { title = "pcode" })
+			return
+		end
 	end
+
+	notify("Fitur tidak ditemukan: " .. fitur, levels.ERROR, { title = "pcode" })
+end
+
+api.nvim_create_user_command("PCodeAdd", function(opts)
+	set_feature(clean_feature(opts.args), true)
 end, {
 	nargs = 1,
 	complete = function()
-		-- return noactivateds
-		return gabungan
+		return feature_candidates(false) -- yang belum aktif
 	end,
 })
 
-vim.api.nvim_create_user_command("PCodeRemove", function(opts)
-	local groupTabel = "pcode"
-	local groupTabel2 = "pcode.extras"
-	local groupTabel3 = "pcode.lang"
-	local fitur = opts.args
-	fitur = string.gsub(fitur, "Lang%s*=>%s*", "")
-	fitur = string.gsub(fitur, "Extras%s*=>%s*", "")
-	fitur = string.gsub(fitur, "Conf%s*=>%s*", "")
-
-	if fitur == "" then
-		vim.notify("Gunakan :PCodeAdd <nama_plugin>", vim.log.levels.WARN)
-		return
-	end
-
-	if editor.set_dot_value(groupTabel .. "." .. fitur, false) then
-		vim.notify(
-			"Config inactive: " .. fitur .. "\n Please restart Neovim",
-			vim.log.levels.INFO,
-			{ title = groupTabel }
-		)
-	elseif editor.set_table_value(groupTabel2, fitur, false) then
-		vim.notify(
-			"Extra removed: " .. fitur .. "\n Please restart Neovim",
-			vim.log.levels.INFO,
-			{ title = groupTabel }
-		)
-	elseif editor.set_table_value(groupTabel3, fitur, false) then
-		vim.notify("Lang removed: " .. fitur .. "\n Please restart Neovim", vim.log.levels.INFO, { title = groupTabel })
-	else
-		vim.notify("Fitur tidak ditemukan: " .. fitur, vim.log.levels.ERROR, { title = groupTabel })
-	end
+api.nvim_create_user_command("PCodeRemove", function(opts)
+	set_feature(clean_feature(opts.args), false)
 end, {
 	nargs = 1,
 	complete = function()
-		return gabungInstalled
+		return feature_candidates(true) -- yang sudah aktif
 	end,
 })
--- end activate
 
+-- :Theme <theme> <variant>
 local function theme_complete(_, cmdline)
 	local args = vim.split(cmdline, "%s+")
-
 	local result = {}
 
-	-- :Theme evatheme Eva
+	-- :Theme <key> <prefix>
 	if #args >= 3 then
-		local key = args[2]
-		local prefix = args[3] or ""
-
+		local key, prefix = args[2], args[3]:lower()
 		for _, variant in ipairs(registry.themes[key] or {}) do
-			if variant:lower():find(prefix:lower(), 1, true) then
-				table.insert(result, key .. " " .. variant)
+			if variant:lower():find(prefix, 1, true) then
+				result[#result + 1] = key .. " " .. variant
 			end
 		end
 		return result
 	end
 
 	-- :Theme <TAB>
-	for key, variants in pairs(registry.themes) do
-		for _, variant in ipairs(variants) do
-			table.insert(result, key .. " " .. variant)
+	local keys = vim.tbl_keys(registry.themes)
+	table.sort(keys)
+	for _, key in ipairs(keys) do
+		for _, variant in ipairs(registry.themes[key]) do
+			result[#result + 1] = key .. " " .. variant
 		end
 	end
-
 	return result
 end
 
-vim.api.nvim_create_user_command("Theme", function(opts)
+api.nvim_create_user_command("Theme", function(opts)
 	local args = vim.split(opts.args, "%s+", { trimempty = true })
-
 	if #args < 2 then
-		vim.notify("Use: :Theme <theme> <variant>", vim.log.levels.WARN)
+		notify("Use: :Theme <theme> <variant>", levels.WARN)
 		return
 	end
 
@@ -300,38 +366,88 @@ vim.api.nvim_create_user_command("Theme", function(opts)
 	local value = table.concat(args, " ", 2)
 
 	if editor.replace_theme(key, value) then
-		vim.notify(("Theme set: %s = %s"):format(key, value), vim.log.levels.INFO, { title = "pcode.themes" })
+		notify(("Theme set: %s = %s"):format(key, value), levels.INFO, { title = "pcode.themes" })
 	else
-		vim.notify("pcode.themes not found", vim.log.levels.ERROR)
+		notify("pcode.themes not found", levels.ERROR)
 	end
-end, {
-	nargs = "+",
-	complete = theme_complete,
-})
+end, { nargs = "+", complete = theme_complete })
 
-vim.api.nvim_create_user_command("PCodeConfig", function()
+api.nvim_create_user_command("PCodeConfig", function()
 	require("pcode.ui.pcode_dashboard").open()
 end, {})
 
--- Nonaktifkan kombinasi CTRL+SHIFT+Drag Mouse
-vim.keymap.set("", "<C-S-LeftMouse>", "<Nop>", { noremap = true, silent = true })
-vim.keymap.set("", "<C-S-LeftDrag>", "<Nop>", { noremap = true, silent = true })
-vim.keymap.set("", "<C-S-LeftRelease>", "<Nop>", { noremap = true, silent = true })
+-- ============================================================================
+-- LSP helpers
+-- ============================================================================
+local function get_clients(bufnr)
+	local get = vim.lsp.get_clients or vim.lsp.get_active_clients
+	return get({ bufnr = bufnr })
+end
 
--- set tabsize 4 if file type php
-vim.api.nvim_create_autocmd("FileType", {
-	pattern = { "javascript", "typescript" },
-	callback = function()
-		vim.opt.tabstop = 4
-		vim.opt.shiftwidth = 4
-	end,
-})
+--- Ambil nama fitur dari `list` ({ provider, label }) yang didukung server.
+local function supported_features(caps, list)
+	local out = {}
+	for _, item in ipairs(list) do
+		if caps[item[1]] then
+			out[#out + 1] = item[2]
+		end
+	end
+	return out
+end
 
--- Extras
-local function lsp_status()
-	local bufnr = vim.api.nvim_get_current_buf()
-	local clients = vim.lsp.get_clients and vim.lsp.get_clients({ bufnr = bufnr })
-		or vim.lsp.get_active_clients({ bufnr = bufnr })
+local function diagnostic_counts(bufnr)
+	local counts = { ERROR = 0, WARN = 0, INFO = 0, HINT = 0 }
+	local diagnostics = vim.diagnostic.get(bufnr)
+	for _, d in ipairs(diagnostics) do
+		local name = vim.diagnostic.severity[d.severity]
+		counts[name] = counts[name] + 1
+	end
+	return counts, #diagnostics
+end
+
+local STATUS_FEATURES = {
+	{ "completionProvider", "completion" },
+	{ "hoverProvider", "hover" },
+	{ "definitionProvider", "definition" },
+	{ "referencesProvider", "references" },
+	{ "renameProvider", "rename" },
+	{ "codeActionProvider", "code_action" },
+	{ "documentFormattingProvider", "formatting" },
+}
+
+local KEY_FEATURES = {
+	{ "completionProvider", "completion" },
+	{ "hoverProvider", "hover" },
+	{ "definitionProvider", "definition" },
+	{ "documentFormattingProvider", "formatting" },
+	{ "codeActionProvider", "code_action" },
+}
+
+local ALL_CAPABILITIES = {
+	{ "Completion", "completionProvider" },
+	{ "Hover", "hoverProvider" },
+	{ "Signature Help", "signatureHelpProvider" },
+	{ "Go to Definition", "definitionProvider" },
+	{ "Go to Declaration", "declarationProvider" },
+	{ "Go to Implementation", "implementationProvider" },
+	{ "Go to Type Definition", "typeDefinitionProvider" },
+	{ "Find References", "referencesProvider" },
+	{ "Document Highlight", "documentHighlightProvider" },
+	{ "Document Symbol", "documentSymbolProvider" },
+	{ "Workspace Symbol", "workspaceSymbolProvider" },
+	{ "Code Action", "codeActionProvider" },
+	{ "Code Lens", "codeLensProvider" },
+	{ "Document Formatting", "documentFormattingProvider" },
+	{ "Document Range Formatting", "documentRangeFormattingProvider" },
+	{ "Rename", "renameProvider" },
+	{ "Folding Range", "foldingRangeProvider" },
+	{ "Selection Range", "selectionRangeProvider" },
+}
+
+-- :LspStatus
+api.nvim_create_user_command("LspStatus", function()
+	local bufnr = api.nvim_get_current_buf()
+	local clients = get_clients(bufnr)
 
 	if #clients == 0 then
 		print("󰅚 No LSP clients attached")
@@ -345,43 +461,14 @@ local function lsp_status()
 		print(string.format("󰌘 Client %d: %s (ID: %d)", i, client.name, client.id))
 		print("  Root: " .. (client.config.root_dir or "N/A"))
 		print("  Filetypes: " .. table.concat(client.config.filetypes or {}, ", "))
-
-		-- Check capabilities
-		local caps = client.server_capabilities
-		local features = {}
-		if caps.completionProvider then
-			table.insert(features, "completion")
-		end
-		if caps.hoverProvider then
-			table.insert(features, "hover")
-		end
-		if caps.definitionProvider then
-			table.insert(features, "definition")
-		end
-		if caps.referencesProvider then
-			table.insert(features, "references")
-		end
-		if caps.renameProvider then
-			table.insert(features, "rename")
-		end
-		if caps.codeActionProvider then
-			table.insert(features, "code_action")
-		end
-		if caps.documentFormattingProvider then
-			table.insert(features, "formatting")
-		end
-
-		print("  Features: " .. table.concat(features, ", "))
+		print("  Features: " .. table.concat(supported_features(client.server_capabilities, STATUS_FEATURES), ", "))
 		print("")
 	end
-end
+end, { desc = "Show detailed LSP status" })
 
-vim.api.nvim_create_user_command("LspStatus", lsp_status, { desc = "Show detailed LSP status" })
-
-local function check_lsp_capabilities()
-	local bufnr = vim.api.nvim_get_current_buf()
-	local clients = vim.lsp.get_clients and vim.lsp.get_clients({ bufnr = bufnr })
-		or vim.lsp.get_active_clients({ bufnr = bufnr })
+-- :LspCapabilities
+api.nvim_create_user_command("LspCapabilities", function()
+	local clients = get_clients(api.nvim_get_current_buf())
 
 	if #clients == 0 then
 		print("No LSP clients attached")
@@ -390,75 +477,38 @@ local function check_lsp_capabilities()
 
 	for _, client in ipairs(clients) do
 		print("Capabilities for " .. client.name .. ":")
-		local caps = client.server_capabilities
-
-		local capability_list = {
-			{ "Completion", caps.completionProvider },
-			{ "Hover", caps.hoverProvider },
-			{ "Signature Help", caps.signatureHelpProvider },
-			{ "Go to Definition", caps.definitionProvider },
-			{ "Go to Declaration", caps.declarationProvider },
-			{ "Go to Implementation", caps.implementationProvider },
-			{ "Go to Type Definition", caps.typeDefinitionProvider },
-			{ "Find References", caps.referencesProvider },
-			{ "Document Highlight", caps.documentHighlightProvider },
-			{ "Document Symbol", caps.documentSymbolProvider },
-			{ "Workspace Symbol", caps.workspaceSymbolProvider },
-			{ "Code Action", caps.codeActionProvider },
-			{ "Code Lens", caps.codeLensProvider },
-			{ "Document Formatting", caps.documentFormattingProvider },
-			{ "Document Range Formatting", caps.documentRangeFormattingProvider },
-			{ "Rename", caps.renameProvider },
-			{ "Folding Range", caps.foldingRangeProvider },
-			{ "Selection Range", caps.selectionRangeProvider },
-		}
-
-		for _, cap in ipairs(capability_list) do
-			local status = cap[2] and "✓" or "✗"
-			print(string.format("  %s %s", status, cap[1]))
+		for _, cap in ipairs(ALL_CAPABILITIES) do
+			print(string.format("  %s %s", client.server_capabilities[cap[2]] and "✓" or "✗", cap[1]))
 		end
 		print("")
 	end
-end
+end, { desc = "Show LSP capabilities" })
 
-vim.api.nvim_create_user_command("LspCapabilities", check_lsp_capabilities, { desc = "Show LSP capabilities" })
-
-local function lsp_diagnostics_info()
-	local bufnr = vim.api.nvim_get_current_buf()
-	local diagnostics = vim.diagnostic.get(bufnr)
-
-	local counts = { ERROR = 0, WARN = 0, INFO = 0, HINT = 0 }
-
-	for _, diagnostic in ipairs(diagnostics) do
-		local severity = vim.diagnostic.severity[diagnostic.severity]
-		counts[severity] = counts[severity] + 1
-	end
+-- :LspDiagnostics
+api.nvim_create_user_command("LspDiagnostics", function()
+	local counts, total = diagnostic_counts(api.nvim_get_current_buf())
 
 	print("󰒡 Diagnostics for current buffer:")
 	print("  Errors: " .. counts.ERROR)
 	print("  Warnings: " .. counts.WARN)
 	print("  Info: " .. counts.INFO)
 	print("  Hints: " .. counts.HINT)
-	print("  Total: " .. #diagnostics)
-end
+	print("  Total: " .. total)
+end, { desc = "Show LSP diagnostics count" })
 
-vim.api.nvim_create_user_command("LspDiagnostics", lsp_diagnostics_info, { desc = "Show LSP diagnostics count" })
-
-local function lsp_info()
-	local bufnr = vim.api.nvim_get_current_buf()
-	local clients = vim.lsp.get_clients and vim.lsp.get_clients({ bufnr = bufnr })
-		or vim.lsp.get_active_clients({ bufnr = bufnr })
+-- :LspInfo
+api.nvim_create_user_command("LspInfo", function()
+	local bufnr = api.nvim_get_current_buf()
+	local clients = get_clients(bufnr)
 
 	print("═══════════════════════════════════")
 	print("           LSP INFORMATION          ")
 	print("═══════════════════════════════════")
 	print("")
-
-	-- Basic info
 	print("󰈙 Language client log: " .. vim.lsp.get_log_path())
 	print("󰈔 Detected filetype: " .. vim.bo.filetype)
 	print("󰈮 Buffer: " .. bufnr)
-	print("󰈔 Root directory: " .. (vim.fn.getcwd() or "N/A"))
+	print("󰈔 Root directory: " .. fn.getcwd())
 	print("")
 
 	if #clients == 0 then
@@ -481,15 +531,8 @@ local function lsp_info()
 		print("  Root dir: " .. (client.config.root_dir or "Not set"))
 		print("  Command: " .. table.concat(client.config.cmd or {}, " "))
 		print("  Filetypes: " .. table.concat(client.config.filetypes or {}, ", "))
+		print("  Status: " .. (client:is_stopped() and "󰅚 Stopped" or "󰄬 Running"))
 
-		-- Server status
-		if client.is_stopped() then
-			print("  Status: 󰅚 Stopped")
-		else
-			print("  Status: 󰄬 Running")
-		end
-
-		-- Workspace folders
 		if client.workspace_folders and #client.workspace_folders > 0 then
 			print("  Workspace folders:")
 			for _, folder in ipairs(client.workspace_folders) do
@@ -497,55 +540,23 @@ local function lsp_info()
 			end
 		end
 
-		-- Attached buffers count
-		local attached_buffers = {}
-		for buf, _ in pairs(client.attached_buffers or {}) do
-			table.insert(attached_buffers, buf)
-		end
-		print("  Attached buffers: " .. #attached_buffers)
+		print("  Attached buffers: " .. vim.tbl_count(client.attached_buffers or {}))
 
-		-- Key capabilities
-		local caps = client.server_capabilities
-		local key_features = {}
-		if caps.completionProvider then
-			table.insert(key_features, "completion")
+		local features = supported_features(client.server_capabilities, KEY_FEATURES)
+		if #features > 0 then
+			print("  Key features: " .. table.concat(features, ", "))
 		end
-		if caps.hoverProvider then
-			table.insert(key_features, "hover")
-		end
-		if caps.definitionProvider then
-			table.insert(key_features, "definition")
-		end
-		if caps.documentFormattingProvider then
-			table.insert(key_features, "formatting")
-		end
-		if caps.codeActionProvider then
-			table.insert(key_features, "code_action")
-		end
-
-		if #key_features > 0 then
-			print("  Key features: " .. table.concat(key_features, ", "))
-		end
-
 		print("")
 	end
 
-	-- Diagnostics summary
-	local diagnostics = vim.diagnostic.get(bufnr)
-	if #diagnostics > 0 then
+	local counts, total = diagnostic_counts(bufnr)
+	if total > 0 then
 		print("󰒡 Diagnostics Summary:")
-		local counts = { ERROR = 0, WARN = 0, INFO = 0, HINT = 0 }
-
-		for _, diagnostic in ipairs(diagnostics) do
-			local severity = vim.diagnostic.severity[diagnostic.severity]
-			counts[severity] = counts[severity] + 1
-		end
-
 		print("  󰅚 Errors: " .. counts.ERROR)
 		print("  󰀪 Warnings: " .. counts.WARN)
 		print("  󰋽 Info: " .. counts.INFO)
 		print("  󰌶 Hints: " .. counts.HINT)
-		print("  Total: " .. #diagnostics)
+		print("  Total: " .. total)
 	else
 		print("󰄬 No diagnostics")
 	end
@@ -553,181 +564,104 @@ local function lsp_info()
 	print("")
 	print("Use :LspLog to view detailed logs")
 	print("Use :LspCapabilities for full capability list")
+end, { desc = "Show comprehensive LSP information" })
+
+-- ============================================================================
+-- CFLint
+-- ============================================================================
+local ANSI_PATTERN = "\27%[[%d;]*m"
+local CFLINT_LINE = "^%s*(%u+):%s*([%u_]+),%s*(.-)%s*%[(%d+),(%d+)%]%s*$"
+
+local function parse_cflint(lines, file)
+	local raw = table.concat(lines, "\n"):gsub(ANSI_PATTERN, "")
+	local items = {}
+
+	for line in raw:gmatch("[^\r\n]+") do
+		local sev, code, msg, lnum, col = line:match(CFLINT_LINE)
+		if sev then
+			items[#items + 1] = {
+				filename = file,
+				lnum = tonumber(lnum),
+				col = tonumber(col),
+				text = string.format("[%s] %s (%s)", sev, msg, code),
+				type = "E",
+			}
+		end
+	end
+
+	return items
 end
 
--- Create command
-vim.api.nvim_create_user_command("LspInfo", lsp_info, { desc = "Show comprehensive LSP information" })
-
 local function cflint_check()
-	local file = vim.api.nvim_buf_get_name(0)
+	local file = api.nvim_buf_get_name(0)
 	if file == "" then
-		print("Buffer belum punya file yang tersimpan.")
+		notify("Buffer belum punya file yang tersimpan.", levels.WARN)
+		return
+	end
+	if fn.executable("box") == 0 then
+		notify("Perintah `box` tidak ditemukan di PATH.", levels.ERROR)
 		return
 	end
 
-	local dir = vim.fn.fnamemodify(file, ":h")
-	local filename = vim.fn.fnamemodify(file, ":t")
+	local filename = fn.fnamemodify(file, ":t")
+	local output = {}
+	local function on_output(_, data)
+		if data then
+			vim.list_extend(output, data)
+		end
+	end
 
-	local cmd = { "box", "cflint", "pattern=" .. filename, "reportLevel=ERROR" }
-	local output_lines = {}
-
-	local job_id = vim.fn.jobstart(cmd, {
-		cwd = dir,
+	local job_id = fn.jobstart({ "box", "cflint", "pattern=" .. filename, "reportLevel=ERROR" }, {
+		cwd = fn.fnamemodify(file, ":h"),
+		stdin = "null",
 		stdout_buffered = true,
 		stderr_buffered = true,
-		on_stdout = function(_, data)
-			if data then
-				vim.list_extend(output_lines, data)
-			end
-		end,
-		on_stderr = function(_, data)
-			if data then
-				vim.list_extend(output_lines, data)
-			end
-		end,
+		on_stdout = on_output,
+		on_stderr = on_output,
 		on_exit = function()
-			local raw = table.concat(output_lines, "\n"):gsub("\27%[[%d;]*m", "")
-
-			local qf_items = {}
-			for line in raw:gmatch("[^\r\n]+") do
-				local sev, code, msg, lnum, col = line:match("^%s*(%u+):%s*([%u_]+),%s*(.-)%s*%[(%d+),(%d+)%]%s*$")
-				if sev then
-					table.insert(qf_items, {
-						filename = file,
-						lnum = tonumber(lnum),
-						col = tonumber(col),
-						text = string.format("[%s] %s (%s)", sev, msg, code),
-						type = "E",
-					})
-				end
-			end
-
+			local items = parse_cflint(output, file)
 			vim.schedule(function()
-				vim.fn.setqflist(qf_items, "r")
-				vim.fn.setqflist({}, "a", { title = "CFLint - " .. filename })
-				if #qf_items > 0 then
+				fn.setqflist({}, "r", { title = "CFLint - " .. filename, items = items })
+				if #items > 0 then
 					vim.cmd("belowright copen")
 				else
-					vim.notify("CFLint: tidak ada error ditemukan.", vim.log.levels.INFO)
+					notify("CFLint: tidak ada error ditemukan.", levels.INFO)
 				end
 			end)
 		end,
 	})
 
 	if job_id <= 0 then
-		vim.notify("Gagal menjalankan job cflint! job_id=" .. job_id, vim.log.levels.ERROR)
+		notify("Gagal menjalankan job cflint! job_id=" .. job_id, levels.ERROR)
 		return
 	end
 
-	vim.fn.chanclose(job_id, "stdin")
-	vim.notify("Menjalankan CFLint...", vim.log.levels.INFO)
+	notify("Menjalankan CFLint...", levels.INFO)
 end
 
-vim.api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan box cflint untuk file aktif" })
+api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan box cflint untuk file aktif" })
 
--- Debounce: tunda eksekusi CFLint 500ms setelah save terakhir,
--- supaya save berturut-turut cepat tidak numpuk job
---[[ local cflint_debounce_timer = nil
+--[[ Auto-run CFLint saat save (debounce 500ms agar save beruntun tidak numpuk job)
 
-local function cflint_check_debounced()
-	if cflint_debounce_timer then
-		cflint_debounce_timer:stop()
-		cflint_debounce_timer:close()
-		cflint_debounce_timer = nil
-	end
+local cflint_timer = nil
 
-	cflint_debounce_timer = vim.uv.new_timer()
-	cflint_debounce_timer:start(
-		500,
-		0,
-		vim.schedule_wrap(function()
-			cflint_check()
-			if cflint_debounce_timer then
-				cflint_debounce_timer:close()
-				cflint_debounce_timer = nil
-			end
-		end)
-	)
-end
-
-vim.api.nvim_create_autocmd("BufWritePost", {
+autocmd("BufWritePost", {
+	group = augroup("_cflint_autorun"),
 	pattern = { "*.cfc", "*.cfm", "*.cfml", "*.cfs" },
-	callback = function()
-		cflint_check_debounced()
-	end,
 	desc = "Auto-run CFLint on save (debounced)",
-}) ]]
-
-vim.api.nvim_create_autocmd("TermClose", {
-	pattern = "*lazygit*", -- cocok dengan nama buffer terminal lazygit
 	callback = function()
-		local ok, api = pcall(require, "nvim-tree.api")
-		if ok and api.tree.is_visible() then
-			vim.defer_fn(function()
-				api.tree.reload()
-			end, 100)
+		if cflint_timer then
+			cflint_timer:stop()
+			cflint_timer:close()
 		end
+		cflint_timer = (vim.uv or vim.loop).new_timer()
+		cflint_timer:start(500, 0, vim.schedule_wrap(function()
+			cflint_check()
+			if cflint_timer then
+				cflint_timer:close()
+				cflint_timer = nil
+			end
+		end))
 	end,
 })
-
---  start hilight error
-local function blend(foreground, background, alpha)
-	alpha = type(alpha) == "string" and (tonumber(alpha, 16) / 255) or alpha
-	local function hexToRgb(hex)
-		hex = hex:gsub("#", "")
-		return tonumber(hex:sub(1, 2), 16), tonumber(hex:sub(3, 4), 16), tonumber(hex:sub(5, 6), 16)
-	end
-	local fgR, fgG, fgB = hexToRgb(foreground)
-	local bgR, bgG, bgB = hexToRgb(background)
-
-	local r = math.floor(alpha * fgR + (1 - alpha) * bgR + 0.5)
-	local g = math.floor(alpha * fgG + (1 - alpha) * bgG + 0.5)
-	local b = math.floor(alpha * fgB + (1 - alpha) * bgB + 0.5)
-
-	return string.format("#%02x%02x%02x", r, g, b)
-end
-
--- Menghasilkan warna 30% Dracula Red di atas background Dracula secara otomatis:
-local dracula_bg = "#282a36"
-local dracula_red = "#ff5555"
-
-local ns = vim.api.nvim_create_namespace("error_line_hl")
-
-local function set_hl()
-	vim.api.nvim_set_hl(0, "ErrorLineBg", { bg = blend(dracula_red, dracula_bg, 0.05) })
-end
-set_hl()
-
-vim.api.nvim_create_autocmd("ColorScheme", { callback = set_hl })
-
-local function refresh(bufnr)
-	if not vim.api.nvim_buf_is_valid(bufnr) then
-		return
-	end
-	vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-
-	for _, d in ipairs(vim.diagnostic.get(bufnr, { severity = vim.diagnostic.severity.ERROR })) do
-		for lnum = d.lnum, (d.end_lnum or d.lnum) do
-			pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, lnum, 0, {
-				line_hl_group = "ErrorLineBg",
-				priority = 10,
-			})
-		end
-	end
-end
-
-vim.api.nvim_create_autocmd("DiagnosticChanged", {
-	callback = function(args)
-		refresh(args.buf)
-	end,
-})
-
--- config supaya quickfix tidak ambil selebar window
-vim.api.nvim_create_autocmd("VimEnter", {
-	callback = function()
-		vim.cmd([[
-      silent! aunmenu PopUp.Show\ All\ Diagnostics
-      anoremenu 500 PopUp.Show\ All\ Diagnostics <Cmd>lua vim.diagnostic.setqflist({ open = false }); vim.cmd("belowright copen")<CR>
-    ]])
-	end,
-})
+]]
