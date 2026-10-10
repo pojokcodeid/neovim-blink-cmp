@@ -3,7 +3,6 @@
 -- ============================================================================
 local api = vim.api
 local fn = vim.fn
-local notify = vim.notify
 local levels = vim.log.levels
 
 --- Membuat augroup (selalu di-clear agar tidak menumpuk saat config di-reload)
@@ -274,7 +273,7 @@ local FEATURE_MESSAGES = {
 
 local function set_feature(fitur, enabled)
 	if fitur == "" then
-		notify("Gunakan :" .. (enabled and "PCodeAdd" or "PCodeRemove") .. " <nama_plugin>", levels.WARN)
+		vim.notify("Gunakan :" .. (enabled and "PCodeAdd" or "PCodeRemove") .. " <nama_plugin>", levels.WARN)
 		return
 	end
 
@@ -302,12 +301,12 @@ local function set_feature(fitur, enabled)
 
 	for _, target in ipairs(targets) do
 		if target[2]() then
-			notify(target[1] .. ": " .. fitur .. "\n Please restart Neovim", levels.INFO, { title = "pcode" })
+			vim.notify(target[1] .. ": " .. fitur .. "\n Please restart Neovim", levels.INFO, { title = "pcode" })
 			return
 		end
 	end
 
-	notify("Fitur tidak ditemukan: " .. fitur, levels.ERROR, { title = "pcode" })
+	vim.notify("Fitur tidak ditemukan: " .. fitur, levels.ERROR, { title = "pcode" })
 end
 
 api.nvim_create_user_command("PCodeAdd", function(opts)
@@ -358,7 +357,7 @@ end
 api.nvim_create_user_command("Theme", function(opts)
 	local args = vim.split(opts.args, "%s+", { trimempty = true })
 	if #args < 2 then
-		notify("Use: :Theme <theme> <variant>", levels.WARN)
+		vim.notify("Use: :Theme <theme> <variant>", levels.WARN)
 		return
 	end
 
@@ -366,9 +365,9 @@ api.nvim_create_user_command("Theme", function(opts)
 	local value = table.concat(args, " ", 2)
 
 	if editor.replace_theme(key, value) then
-		notify(("Theme set: %s = %s"):format(key, value), levels.INFO, { title = "pcode.themes" })
+		vim.notify(("Theme set: %s = %s"):format(key, value), levels.INFO, { title = "pcode.themes" })
 	else
-		notify("pcode.themes not found", levels.ERROR)
+		vim.notify("pcode.themes not found", levels.ERROR)
 	end
 end, { nargs = "+", complete = theme_complete })
 
@@ -595,11 +594,11 @@ end
 local function cflint_check()
 	local file = api.nvim_buf_get_name(0)
 	if file == "" then
-		notify("Buffer belum punya file yang tersimpan.", levels.WARN)
+		vim.notify("Buffer belum punya file yang tersimpan.", levels.WARN)
 		return
 	end
 	if fn.executable("box") == 0 then
-		notify("Perintah `box` tidak ditemukan di PATH.", levels.ERROR)
+		vim.notify("Perintah `box` tidak ditemukan di PATH.", levels.ERROR)
 		return
 	end
 
@@ -625,18 +624,18 @@ local function cflint_check()
 				if #items > 0 then
 					vim.cmd("belowright copen")
 				else
-					notify("CFLint: tidak ada error ditemukan.", levels.INFO)
+					vim.notify("CFLint: tidak ada error ditemukan.", levels.INFO)
 				end
 			end)
 		end,
 	})
 
 	if job_id <= 0 then
-		notify("Gagal menjalankan job cflint! job_id=" .. job_id, levels.ERROR)
+		vim.notify("Gagal menjalankan job cflint! job_id=" .. job_id, levels.ERROR)
 		return
 	end
 
-	notify("Menjalankan CFLint...", levels.INFO)
+	vim.notify("Menjalankan CFLint...", levels.INFO)
 end
 
 api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan box cflint untuk file aktif" })

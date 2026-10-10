@@ -122,11 +122,34 @@ return {
 				completion = { menu = { auto_show = true } },
 			},
 			sources = {
-				default = { "lsp", "path", "snippets", "buffer" },
-				providers = {},
+				-- "ripgrep" (dan sumber lain) ditambahkan dari spec plugin lain lewat opts_extend
+				default = { "lsp", "snippets", "path", "buffer" },
+				providers = {
+					lsp = { score_offset = 100 },
+					snippets = { score_offset = 50 },
+					path = { score_offset = 20 },
+					buffer = { score_offset = -20 },
+				},
 			},
 			-- fuzzy = { implementation = "prefer_rust_with_warning" },
-			fuzzy = { implementation = "lua" },
+			fuzzy = {
+				implementation = "lua",
+				-- Urutan tampil: LSP -> Snippets -> Path -> Buffer (text) -> Ripgrep -> lainnya.
+				-- Fungsi pertama mengurutkan per sumber; return nil = lanjut ke sort berikutnya.
+				-- Jangan taruh "exact" di depan, karena kata yang persis sama (mis. dari
+				-- Ripgrep) akan mengalahkan LSP.
+				sorts = {
+					function(a, b)
+						local rank = { lsp = 1, snippets = 2, path = 3, buffer = 4, ripgrep = 5 }
+						local ra, rb = rank[a.source_id] or 9, rank[b.source_id] or 9
+						if ra ~= rb then
+							return ra < rb
+						end
+					end,
+					"score",
+					"sort_text",
+				},
+			},
 		}
 	end,
 	opts_extend = {

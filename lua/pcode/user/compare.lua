@@ -218,6 +218,6 @@ vim.api.nvim_set_hl(0, "DiffText", { bg = "#3d3d6b" })
 -- Command & keymap
 -- ------------------------------------------------------------
 vim.api.nvim_create_user_command("CompareFiles", M.compare_files, {})
-vim.keymap.set("n", "<leader>fd", M.compare_files, { desc = "Compare 2 files (popup)" })
+-- vim.keymap.set("n", "<leader>fd", M.compare_files, { desc = "Compare 2 files (popup)" })
 
 return M
