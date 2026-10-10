@@ -1,416 +1,560 @@
--- Hapus alert / print sebelumnya
+-- ~/.config/nvim/after/ftplugin/cfml.lua
+-- Konfigurasi filetype CFML: indent, auto-close tag, CFLint, comment, snippets.
+--
+-- Struktur:
+--   1. Bagian buffer-local  -> dijalankan setiap buffer CFML dibuka
+--   2. Bagian global        -> dijalankan SEKALI saja (guard di tengah file)
 
--- Force cindent & indentexpr khusus buffer CFML
-vim.bo.cindent = true
-vim.bo.smartindent = false
-vim.bo.indentexpr = "cindent(v:lnum)"
+local api = vim.api
+local fn = vim.fn
+local bo = vim.bo
 
--- Formatting tab/spasi
-vim.bo.expandtab = true
-vim.bo.shiftwidth = 4
-vim.bo.tabstop = 4
+-- ============================================================================
+-- 1. Buffer-local
+-- ============================================================================
 
-vim.bo.autoindent = true
-vim.bo.indentexpr = ""
--- hapus trigger '0#' (yang bikin '#' dipaksa ke kolom 0) dari indentkeys
-vim.bo.cinkeys = vim.bo.cinkeys:gsub(",?0#", "")
+-- ---------------------------------------------------------------------------
+-- Indent & tab
+-- ---------------------------------------------------------------------------
+bo.cindent = true
+bo.smartindent = false
+bo.autoindent = true
+bo.indentexpr = "" -- pakai cindent, bukan indentexpr
+bo.expandtab = true
+bo.shiftwidth = 4
+bo.tabstop = 4
+
+-- Hapus trigger '0#' dari cinkeys (yang memaksa '#' ke kolom 0)
+bo.cinkeys = (bo.cinkeys:gsub(",?0#", ""))
 
 -- Align kurung kurawal { } & pemicu kata kunci
-vim.bo.cinoptions = "{0,}0,j1,J1"
-vim.bo.cinwords = "component,function,if,else,for,while,switch,try,catch"
+bo.cinoptions = "{0,}0,j1,J1"
+bo.cinwords = "component,function,if,else,for,while,switch,try,catch"
 
--- config for comment string
-local ext = vim.fn.expand("%:e")
+-- .cfm memakai gaya tag, .cfc/.sfc memakai cfscript
+bo.commentstring = fn.expand("%:e") == "cfm" and "<!--- %s --->" or "// %s"
 
-if ext == "cfm" then
-	vim.bo.commentstring = "<!--- %s --->"
-else
-	vim.bo.commentstring = "// %s" -- cfc, sfc
+-- ---------------------------------------------------------------------------
+-- Auto-close tag
+-- Whitelist tag yang butuh penutup. Tag self-closing (cfset, cfparam,
+-- cfinclude, dll) SENGAJA tidak dimasukkan.
+-- ---------------------------------------------------------------------------
+local CLOSING_TAGS = {}
+for _, name in ipairs({
+	-- kontrol alur
+	"cfif",
+	"cfelseif",
+	"cfelse",
+	"cfloop",
+	"cfswitch",
+	"cfcase",
+	"cfdefaultcase",
+	-- error handling
+	"cftry",
+	"cfcatch",
+	"cffinally",
+	-- struktur
+	"cfcomponent",
+	"cffunction",
+	"cfscript",
+	"cfoutput",
+	-- lain-lain
+	"cflock",
+	"cftransaction",
+	"cfsavecontent",
+	"cfquery",
+	"cfstoredproc",
+	"cfmail",
+	"cfhttp",
+	"cfthread",
+	"cfzip",
+	"cfpdf",
+	"cfdocument",
+}) do
+	CLOSING_TAGS[name] = true
 end
 
-local comment_ft = require("Comment.ft")
+--- Sisipkan teks di (row 1-indexed, col 0-indexed) pada buffer aktif.
+local function insert_text(row, col, text)
+	api.nvim_buf_set_text(0, row - 1, col, row - 1, col, { text })
+end
 
--- Daftarkan commentstring linewise & blockwise khusus per filetype
--- Comment.ft.set(filetype, { linewise, blockwise })
-comment_ft.set("cfml", { "// %s", "/* %s */" }) -- default untuk .cfc/.sfc
+--- Ketik ">" setelah "<cfif ..." -> menjadi "<cfif ...></cfif>"
+local function auto_close_on_gt()
+	local row, col = unpack(api.nvim_win_get_cursor(0))
+	local before = api.nvim_get_current_line():sub(1, col)
 
-require("Comment").setup({
-	pre_hook = function(ctx)
-		local ext = vim.fn.expand("%:e")
-		local U = require("Comment.utils")
+	-- tag self-closing (<cfif ... />) tidak di-auto-close
+	local tagname = not before:match("/%s*$") and before:match("<(%a[%w_]*)[^<>]*$")
 
-		if ext == "cfm" then
-			-- .cfm selalu pakai gaya tag, linewise & blockwise sama saja
-			return "<!--- %s --->"
-		end
+	insert_text(row, col, ">")
+	if tagname and CLOSING_TAGS[tagname:lower()] then
+		insert_text(row, col + 1, "</" .. tagname .. ">")
+	end
+	api.nvim_win_set_cursor(0, { row, col + 1 })
+end
 
-		-- .cfc / .sfc → cfscript
-		if ctx.ctype == U.ctype.linewise then
-			return "// %s"
-		else
-			return "/* %s */"
-		end
-	end,
-})
+--- Enter di antara tag pembuka & penutup -> 3 baris. Selain itu serahkan ke
+--- nvim-autopairs agar expand {}, (), [] bawaan plugin tetap jalan.
+local function expand_on_cr()
+	local row, col = unpack(api.nvim_win_get_cursor(0))
+	local line = api.nvim_get_current_line()
+	local before, after = line:sub(1, col), line:sub(col + 1)
 
--- config for auto close tag
-------------------------------------------------------------
--- Daftar tag yang butuh pasangan penutup (whitelist)
--- Tag self-closing (cfset, cfparam, cfinclude, dll) SENGAJA tidak
--- dimasukkan supaya tidak ikut auto-close.
-------------------------------------------------------------
-local closing_tags = {
-	cfif = true,
-	cfelseif = true,
-	cfelse = true,
-	cfloop = true,
-	cfoutput = true,
-	cftry = true,
-	cfcatch = true,
-	cffinally = true,
-	cfswitch = true,
-	cfcase = true,
-	cfdefaultcase = true,
-	cffunction = true,
-	cfcomponent = true,
-	cflock = true,
-	cftransaction = true,
-	cfsavecontent = true,
-	cfquery = true,
-	cfstoredproc = true,
-	cfscript = true,
-	cfmail = true,
-	cfhttp = true,
-	cfthread = true,
-	cfzip = true,
-	cfpdf = true,
-	cfdocument = true,
-}
+	if before:match(">%s*$") and after:match("^</%a[%w_]*>") then
+		local indent = line:match("^%s*")
+		local middle = indent .. (bo.expandtab and (" "):rep(fn.shiftwidth()) or "\t")
 
-------------------------------------------------------------
--- Auto-close: ketik ">" setelah "<cfif ..." -> jadi "<cfif ...></cfif>"
-------------------------------------------------------------
-local function cfml_auto_close_on_gt()
-	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
-	local line = vim.api.nvim_get_current_line()
-	local before = line:sub(1, col)
-
-	-- skip kalau tag ditulis self-closing, misal: <cfif ... />
-	if before:match("/%s*$") then
-		vim.api.nvim_buf_set_text(0, row - 1, col, row - 1, col, { ">" })
-		vim.api.nvim_win_set_cursor(0, { row, col + 1 })
+		api.nvim_buf_set_lines(0, row - 1, row, false, { before, middle, indent .. after })
+		api.nvim_win_set_cursor(0, { row + 1, #middle })
 		return
 	end
 
-	local tagname = before:match("<(%a[%w_]*)[^<>]*$")
-
-	vim.api.nvim_buf_set_text(0, row - 1, col, row - 1, col, { ">" })
-	vim.api.nvim_win_set_cursor(0, { row, col + 1 })
-
-	if tagname and closing_tags[tagname:lower()] then
-		local closing = "</" .. tagname .. ">"
-		vim.api.nvim_buf_set_text(0, row - 1, col + 1, row - 1, col + 1, { closing })
-		vim.api.nvim_win_set_cursor(0, { row, col + 1 })
-	end
-end
-
-vim.keymap.set("i", ">", cfml_auto_close_on_gt, {
-	buffer = true,
-	desc = "Auto close CFML tag",
-})
-
-------------------------------------------------------------
--- Expand: Enter di antara tag pembuka & penutup -> jadi 3 baris
--- (untuk kasus lain, serahkan ke nvim-autopairs supaya behavior
---  expand {}, (), [] bawaan plugin tetap jalan)
-------------------------------------------------------------
-local function cfml_expand_on_cr()
-	local row, col = unpack(vim.api.nvim_win_get_cursor(0))
-	local line = vim.api.nvim_get_current_line()
-	local before = line:sub(1, col)
-	local after = line:sub(col + 1)
-
-	local is_after_open_tag = before:match(">%s*$") ~= nil
-	local closing_tagname = after:match("^</(%a[%w_]*)>")
-
-	if is_after_open_tag and closing_tagname then
-		local current_indent = line:match("^%s*") or ""
-		local shiftwidth = vim.bo.shiftwidth > 0 and vim.bo.shiftwidth or vim.bo.tabstop
-		local extra_indent
-		if vim.bo.expandtab then
-			extra_indent = string.rep(" ", shiftwidth)
-		else
-			extra_indent = "\t"
-		end
-		local middle_indent = current_indent .. extra_indent
-
-		vim.api.nvim_buf_set_lines(0, row - 1, row, false, {
-			before,
-			middle_indent,
-			current_indent .. after,
-		})
-
-		vim.api.nvim_win_set_cursor(0, { row + 1, #middle_indent })
+	local ok, npairs = pcall(require, "nvim-autopairs")
+	local keys
+	if ok and npairs.autopairs_cr then
+		keys = npairs.autopairs_cr()
 	else
-		local ok, npairs = pcall(require, "nvim-autopairs")
-		if ok and npairs.autopairs_cr then
-			vim.api.nvim_feedkeys(npairs.autopairs_cr(), "n", false)
-		else
-			local keys = vim.api.nvim_replace_termcodes("<CR>", true, false, true)
-			vim.api.nvim_feedkeys(keys, "n", false)
-		end
+		keys = api.nvim_replace_termcodes("<CR>", true, false, true)
 	end
+	api.nvim_feedkeys(keys, "n", false)
 end
 
-vim.keymap.set("i", "<CR>", cfml_expand_on_cr, {
-	buffer = true,
-	desc = "Expand CFML tag block on Enter",
-})
+vim.keymap.set("i", ">", auto_close_on_gt, { buffer = true, desc = "Auto close CFML tag" })
+vim.keymap.set("i", "<CR>", expand_on_cr, { buffer = true, desc = "Expand CFML tag block on Enter" })
 
--- config ini untuk cflint
---[[
-  rule exculde 
+-- Runner CommandBox (require ter-cache, aman dipanggil berulang)
+require("pcode.user.boxrun")
 
-  1. // CFLINT-DISABLE -> EMengabaikan Per-Baris Kode (Line Level) bisa diatasnya
-    atau disampingnya 
-  2. // CFLINT-DISABLE MISSING_VAR -> Mengabaikan Aturan Tertentu Sahaja (Rule Specific)/**
-  3. Mengabaikan Satu Fungsi / Component (Function / File Level)
-
-  /**
-  * @cflint-ignore MISSING_VAR
-  */
-  public any function approve(required string RequestKey) {
-      cfparam(name = "attresult", default = "");
-      // ...
-  }
-  4. Mengabaikan Global via File Config .cflintrc
-  
-  {
-    "excludes": [
-      {
-        "name": "MISSING_VAR"
-      }
-    ]
-  }
-
-]]
---
--- integrasi dengan nvim-lint
-local lint = require("lint")
-
--- Helper untuk membaca & memuat aturan .cflintrc jika ada
-local function get_excluded_rules_from_config(bufnr)
-	local bufpath = vim.api.nvim_buf_get_name(bufnr)
-	local found = vim.fs.find(".cflintrc", { path = bufpath, upward = true })[1]
-	if not found then
-		return {}
-	end
-
-	local f = io.open(found, "r")
-	if not f then
-		return {}
-	end
-
-	local content = f:read("*a")
-	f:close()
-
-	local ok, decoded = pcall(vim.json.decode, content)
-	if not ok or not decoded or not decoded.excludes then
-		return {}
-	end
-
-	local excluded = {}
-	for _, item in ipairs(decoded.excludes) do
-		if item.name then
-			excluded[item.name] = true
-		end
-	end
-	return excluded
+-- ============================================================================
+-- 2. Global (sekali saja)
+-- ============================================================================
+if vim.g.loaded_cfml_ftplugin then
+	return
 end
+-- flag di-set di akhir setup global (setelah snippets), supaya error di tengah
+-- tidak membuat setup berikutnya terlewati
 
--- Custom Linter CFLint menggunakan CommandBox (box cflint)
-lint.linters.cflint = {
-	cmd = "box",
-	args = {
-		"cflint",
-		function()
-			local file = vim.api.nvim_buf_get_name(0)
-			local filename = vim.fn.fnamemodify(file, ":t")
-			return "pattern=" .. filename
+-- ---------------------------------------------------------------------------
+-- Comment.nvim
+-- ---------------------------------------------------------------------------
+do
+	local U = require("Comment.utils")
+
+	-- Comment.ft.set(filetype, { linewise, blockwise })
+	require("Comment.ft").set("cfml", { "// %s", "/* %s */" }) -- default .cfc/.sfc
+
+	require("Comment").setup({
+		pre_hook = function(ctx)
+			-- hanya untuk CFML; filetype lain pakai commentstring bawaan
+			if vim.bo.filetype ~= "cfml" then
+				return
+			end
+			-- .cfm selalu gaya tag (linewise & blockwise sama)
+			if fn.expand("%:e") == "cfm" then
+				return "<!--- %s --->"
+			end
+			-- .cfc / .sfc -> cfscript
+			return ctx.ctype == U.ctype.linewise and "// %s" or "/* %s */"
 		end,
-		"reportLevel=ERROR",
-	},
-	-- KUNCI PERBAIKAN: Set working directory ke folder tempat file berada
-	cwd = function()
-		local file = vim.api.nvim_buf_get_name(0)
-		return vim.fn.fnamemodify(file, ":h")
-	end,
-	stdin = false,
-	stream = "both", -- Tangkap stdout dan stderr karena CommandBox terkadang mengirim log ke stderr
-	ignore_exitcode = true,
-	parser = function(output, bufnr)
-		if output == "" or output == nil then
+	})
+end
+
+-- ---------------------------------------------------------------------------
+-- CFLint via nvim-lint (CommandBox: `box cflint`)
+--
+-- Cara mengabaikan rule:
+--   1. // CFLINT-DISABLE              -> abaikan per baris (di atas / di samping)
+--   2. // CFLINT-DISABLE MISSING_VAR  -> abaikan rule tertentu saja
+--   3. Per fungsi / component:
+--        /**
+--        * @cflint-ignore MISSING_VAR
+--        */
+--        public any function approve(required string RequestKey) { ... }
+--   4. Global via file .cflintrc:
+--        { "excludes": [ { "name": "MISSING_VAR" } ] }
+-- ---------------------------------------------------------------------------
+do
+	local lint = require("lint")
+
+	local ANSI_PATTERN = "\27%[[%d;]*m"
+	local LINT_LINE = "^%s*(%u+):%s*([%u_]+),%s*(.-)%s*%[(%d+),(%d+)%]%s*$"
+
+	local IGNORE_RULE_PATTERNS = {
+		"@cflint%-ignore%s+([%w_]+)",
+		"@cflint%-disable%s+([%w_]+)",
+		"cflint%-ignore%s+([%w_]+)",
+	}
+	local IGNORE_ANY_PATTERNS = { "@cflint%-ignore", "@cflint%-disable", "cflint%-ignore" }
+	local FUNCTION_PATTERNS = {
+		"function%s+[%w_]+%s*%(",
+		"function%s+[%w_]+%s*[%w_]+%s*%(",
+		"function%s*%(",
+	}
+
+	local function match_first(str, patterns)
+		for _, p in ipairs(patterns) do
+			local m = str:match(p)
+			if m then
+				return m
+			end
+		end
+	end
+
+	local function matches_any(str, patterns)
+		for _, p in ipairs(patterns) do
+			if str:find(p) then
+				return true
+			end
+		end
+		return false
+	end
+
+	local function count(str, pattern)
+		return select(2, str:gsub(pattern, ""))
+	end
+
+	--- Baca rule yang di-exclude dari .cflintrc terdekat (jika ada).
+	local function get_excluded_rules(bufnr)
+		local found = vim.fs.find(".cflintrc", { path = api.nvim_buf_get_name(bufnr), upward = true })[1]
+		if not found then
 			return {}
 		end
 
-		-- Hilangkan ANSI escape codes (warna terminal dari CommandBox)
-		local clean_output = output:gsub("\27%[[%d;]*m", "")
+		local f = io.open(found, "r")
+		if not f then
+			return {}
+		end
+		local content = f:read("*a")
+		f:close()
 
-		local config_excludes = get_excluded_rules_from_config(bufnr)
-		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		local ok, decoded = pcall(vim.json.decode, content)
+		if not ok or type(decoded) ~= "table" or not decoded.excludes then
+			return {}
+		end
 
-		-- 1. Scan fungsi dan simpan anotasi ignore-nya
-		local function_ignores = {}
-		local current_func_ignores = {}
-		local current_func_start = nil
-		local brace_count = 0
-		local in_function = false
+		local excluded = {}
+		for _, item in ipairs(decoded.excludes) do
+			if item.name then
+				excluded[item.name] = true
+			end
+		end
+		return excluded
+	end
+
+	--- Scan buffer: kumpulkan rentang tiap fungsi beserta anotasi ignore-nya.
+	local function scan_function_ignores(lines)
+		local ranges = {}
+		local rules, start, depth, in_function = {}, nil, 0, false
 
 		for idx, line in ipairs(lines) do
-			local rule_ignored = line:match("@cflint%-ignore%s+([%w_]+)")
-				or line:match("@cflint%-disable%s+([%w_]+)")
-				or line:match("cflint%-ignore%s+([%w_]+)")
-
-			if rule_ignored then
-				table.insert(current_func_ignores, rule_ignored)
-			elseif line:find("@cflint%-ignore") or line:find("@cflint%-disable") or line:find("cflint%-ignore") then
-				table.insert(current_func_ignores, "ALL")
+			local rule = match_first(line, IGNORE_RULE_PATTERNS)
+			if rule then
+				rules[#rules + 1] = rule
+			elseif matches_any(line, IGNORE_ANY_PATTERNS) then
+				rules[#rules + 1] = "ALL"
 			end
 
-			if
-				line:find("function%s+[%w_]+%s*%(")
-				or line:find("function%s+[%w_]+%s*[%w_]+%s*%(")
-				or line:find("function%s*%(")
-			then
-				current_func_start = idx
-				in_function = true
-				brace_count = 0
+			if matches_any(line, FUNCTION_PATTERNS) then
+				start, in_function, depth = idx, true, 0
 			end
 
 			if in_function then
-				local _, open_braces = line:gsub("{", "")
-				local _, close_braces = line:gsub("}", "")
-				brace_count = brace_count + open_braces - close_braces
-
-				if brace_count <= 0 and line:find("}") then
-					table.insert(function_ignores, {
-						start_line = current_func_start,
-						end_line = idx,
-						rules = current_func_ignores,
-					})
-					in_function = false
-					current_func_start = nil
-					current_func_ignores = {}
+				depth = depth + count(line, "{") - count(line, "}")
+				if depth <= 0 and line:find("}") then
+					ranges[#ranges + 1] = { start_line = start, end_line = idx, rules = rules }
+					in_function, start, rules = false, nil, {}
 				end
 			end
 		end
 
-		local function is_ignored_in_function(line_idx, rule_id)
-			for _, fn in ipairs(function_ignores) do
-				if line_idx >= fn.start_line and line_idx <= fn.end_line then
-					for _, r in ipairs(fn.rules) do
-						if r == rule_id or r == "ALL" then
-							return true
-						end
+		return ranges
+	end
+
+	local function ignored_in_function(ranges, line_idx, rule_id)
+		for _, range in ipairs(ranges) do
+			if line_idx >= range.start_line and line_idx <= range.end_line then
+				for _, r in ipairs(range.rules) do
+					if r == rule_id or r == "ALL" then
+						return true
 					end
 				end
 			end
+		end
+		return false
+	end
+
+	--- Cek komentar CFLINT-DISABLE di satu baris untuk rule tertentu.
+	local function has_disable_comment(line_str, rule_id)
+		if not line_str then
 			return false
 		end
+		local rule = line_str:match("CFLINT%-DISABLE%s+([%w_]+)") or line_str:match("cflint%-disable%s+([%w_]+)")
+		if rule then
+			return rule == rule_id or rule == "ALL"
+		end
+		return line_str:find("CFLINT%-DISABLE") ~= nil or line_str:find("cflint%-disable") ~= nil
+	end
 
-		local diagnostics = {}
+	lint.linters.cflint = {
+		cmd = "box",
+		args = {
+			"cflint",
+			function()
+				return "pattern=" .. fn.fnamemodify(api.nvim_buf_get_name(0), ":t")
+			end,
+			"reportLevel=ERROR",
+		},
+		-- Jalankan dari folder tempat file berada
+		cwd = function()
+			return fn.fnamemodify(api.nvim_buf_get_name(0), ":h")
+		end,
+		stdin = false,
+		stream = "both", -- CommandBox kadang mengirim log ke stderr
+		ignore_exitcode = true,
+		parser = function(output, bufnr)
+			if not output or output == "" then
+				return {}
+			end
 
-		-- 2. Parse baris demi baris output dari `box cflint`
-		for line in clean_output:gmatch("[^\r\n]+") do
-			-- Pattern mencocokkan format: ERROR: MISSING_VAR, Variable ... [1408,10]
-			local sev, rule_id, detail_msg, lnum, col =
-				line:match("^%s*(%u+):%s*([%u_]+),%s*(.-)%s*%[(%d+),(%d+)%]%s*$")
+			-- Hilangkan ANSI escape codes (warna terminal CommandBox)
+			local clean_output = output:gsub(ANSI_PATTERN, "")
 
-			if sev and sev == "ERROR" and not config_excludes[rule_id] then
-				local line_idx = tonumber(lnum) or 1
-				local col_idx = tonumber(col) or 1
-				local current_line = lines[line_idx] or ""
-				local prev_line = lines[line_idx - 1] or ""
+			local excludes = get_excluded_rules(bufnr)
+			local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+			local function_ranges = scan_function_ignores(lines)
+			local diagnostics = {}
 
-				local is_disabled = false
+			-- Format: ERROR: MISSING_VAR, Variable ... [1408,10]
+			for line in clean_output:gmatch("[^\r\n]+") do
+				local sev, rule_id, detail_msg, lnum, col = line:match(LINT_LINE)
 
-				-- Check Inline / Previous Line Ignore Comment
-				local check_inline = function(line_str)
-					if not line_str then
-						return false
+				if sev == "ERROR" and not excludes[rule_id] then
+					local row = tonumber(lnum) or 1
+					local column = tonumber(col) or 1
+
+					local disabled = has_disable_comment(lines[row], rule_id)
+						or has_disable_comment(lines[row - 1], rule_id)
+						or ignored_in_function(function_ranges, row, rule_id)
+
+					if not disabled then
+						diagnostics[#diagnostics + 1] = {
+							lnum = row - 1,
+							col = column - 1,
+							end_lnum = row - 1,
+							end_col = column,
+							severity = vim.diagnostic.severity.ERROR,
+							message = string.format("%s (%s)", detail_msg, rule_id),
+							source = "cflint",
+						}
 					end
-					local disabled_rule = line_str:match("CFLINT%-DISABLE%s+([%w_]+)")
-						or line_str:match("cflint%-disable%s+([%w_]+)")
-
-					if disabled_rule then
-						return disabled_rule == rule_id or disabled_rule == "ALL"
-					end
-					return line_str:find("CFLINT%-DISABLE") ~= nil or line_str:find("cflint%-disable") ~= nil
-				end
-
-				if check_inline(current_line) or check_inline(prev_line) then
-					is_disabled = true
-				end
-
-				-- Check Function Level Annotation
-				if not is_disabled and is_ignored_in_function(line_idx, rule_id) then
-					is_disabled = true
-				end
-
-				if not is_disabled then
-					-- Format pesan: "Variable qGetDetail is not declared with a var statement. (MISSING_VAR)"
-					local formatted_message = string.format("%s (%s)", detail_msg, rule_id)
-
-					table.insert(diagnostics, {
-						lnum = line_idx - 1,
-						col = col_idx - 1,
-						end_lnum = line_idx - 1,
-						end_col = col_idx,
-						severity = vim.diagnostic.severity.ERROR,
-						message = formatted_message,
-						source = "cflint",
-					})
 				end
 			end
-		end
 
-		return diagnostics
-	end,
+			return diagnostics
+		end,
+	}
+
+	lint.linters_by_ft = lint.linters_by_ft or {}
+	lint.linters_by_ft.cfml = { "cflint" }
+	lint.linters_by_ft.cfc = { "cflint" }
+
+	api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "InsertLeave" }, {
+		group = api.nvim_create_augroup("CfmlLint", { clear = true }),
+		callback = function()
+			lint.try_lint()
+		end,
+	})
+end
+
+-- ---------------------------------------------------------------------------
+-- Snippets (LuaSnip)
+-- ---------------------------------------------------------------------------
+-- cegah snippet load berkali-kali
+if not vim.g.loaded_cfml_snippets then
+	vim.g.loaded_cfml_snippets = true
+
+	local ls = require("luasnip")
+	local s, t, i, f = ls.snippet, ls.text_node, ls.insert_node, ls.function_node
+
+	local function filename()
+		return fn.expand("%:t:r")
+	end
+
+	--- Node baru harus dibuat per snippet (node tidak boleh dipakai ulang).
+	local function component_header()
+		return { t('component displayname = "'), f(filename, {}), t('" accessors="true" {') }
+	end
+
+	local function split_lines(text)
+		return vim.split(text, "\n", { plain = true })
+	end
+
+	local init_upload_body = [==[
+public any function initUpload(struct argEntries) {
+    _ObjChange("EDIT");
+    // code mulai dari sini
+    var bBckGround = argEntries.keyExists("isbackground") ? argEntries.isbackground : 0;
+    var scheduledate = argEntries.keyExists("isbackground") ? (
+        argEntries.keyExists("scheduledate") ? argEntries.scheduledate : now()
+    ) : "";
+    var blogProc = 1;
+    var procCode = "ROVT#REQUEST.SCookie.User.uid##dateFormat(now(), "yyyymmdd")##timeFormat(now(), "hhmmss")#";
+    var procFunc = "qlid=CL_OvertimeReport.processPerData||lastFuncName";
+
+    Application.APPOBJ.SFProcess.InitAttribute({processName: "Overtime Report Process", processModule: "Attendance"});
+    var retData = Application.APPOBJ.SFProcess.InitProcess(
+        procCode,
+        procFunc,
+        qData,
+        "",
+        "",
+        bBckGround,
+        scheduledate,
+        1,
+        "emp_name"
+    );
+    retData.apidirection = "qlid=CL_OvertimeReport.uploadProcess";
+    return retData;
 }
 
--- Registry Filetype & Autocmd Trigger
-lint.linters_by_ft = lint.linters_by_ft or {}
-lint.linters_by_ft.cfml = { "cflint" }
-lint.linters_by_ft.cfc = { "cflint" }
+public any function lastFuncName(query theQuery) {
+    try {
+        // code here
+        return true;
+    } catch (e) {
+        Application.AppObj.SFUtil.SFWRITELOG(dump = {exception: e});
+        return false;
+    }
+}
 
-vim.api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "InsertLeave" }, {
-	callback = function()
-		lint.try_lint()
-	end,
-})
---[[ -- ~/.config/nvim/after/ftplugin/cfml.lua
--- Breadcrumb manual untuk CFML via LSP documentSymbol (bukan nvim-navic)
---
--- Alasan tidak pakai nvim-navic:
--- - documentSymbol dari cfmleditor-lsp mengembalikan range zero-width
---   (start == end), jadi nvim-navic tidak bisa deteksi "cursor di dalam
---   function ini" kecuali cursor persis di baris deklarasi.
--- - grammar tree-sitter-cfml belum granular untuk cfscript (function-function
---   di dalam component cuma satu node flat "cf_component_content"), jadi
---   pendekatan breadcrumb berbasis treesitter murni juga tidak bisa dipakai.
---
--- Solusi: ambil daftar function dari LSP documentSymbol (baris deklarasinya
--- akurat walau range-nya tidak), lalu cari function dengan baris deklarasi
--- terdekat SEBELUM posisi cursor. Nama component diambil dari nama file,
--- karena di CFML nama component = nama file (dan cfmleditor-lsp tidak
--- mengembalikan component sebagai symbol tersendiri).
+public any function uploadProcess(struct argEntries) {
+    _ObjChange("EDIT");
+    if (isDefined("argEntries.payload")) {
+        scPassData = deserializeJSON(arguments.argEntries.payload);
+    } else if (isStruct(argEntries)) {
+        scPassData = argEntries;
+    } else {
+        return {HSTATUS: 400, MESSAGE: "Invalid passing form or payload"};
+    }
 
-local cfml_symbols_cache = {}
+    scPassData.maxprocess = 5;
+    var retData = Application.APPOBJ.SFProcess.runProcess(argumentcollection = scPassData);
+    retData.apidirection = "qlid=CL_OvertimeReport.uploadProcess";
+    return retData;
+}
 
-------------------------------------------------------------
--- Ambil documentSymbol dari LSP client "cfml", simpan ke cache
-------------------------------------------------------------
-local function cfml_refresh_symbols()
+public any function processPerData(string processCode, numeric currow, query qData) {
+    try {
+        // code here
+    } catch (any e) {
+        LOCAL.pathlog = Application.AppObj.SFUtil.SFWRITELOG(dump = {catch: e});
+        LOCAL.empName = qData.emp_name[currow];
+        Application.APPOBJ.SFProcess.AddFailure(
+            Arguments.processcode,
+            Arguments.rowData.seq_id,
+            "Error Overtime Report For : " & LOCAL.empName,
+            "#LOCAL.pathlog#"
+        );
+        return false;
+    }
+    return true;
+}]==]
+
+	ls.add_snippets("cfml", {
+		s(
+			"componentName",
+			vim.list_extend(component_header(), {
+				t({ "", "\t" }),
+				i(0),
+				t({ "", "}" }),
+			})
+		),
+
+		s(
+			"componentInit",
+			vim.list_extend(component_header(), {
+				t({ "", "", "    function init() {", "        return this;", "    }", "", "\t" }),
+				i(0),
+				t({ "", "}" }),
+			})
+		),
+
+		s("functionName", {
+			t("public any function "),
+			i(1, "namaFunction"),
+			t("("),
+			i(2, "parameter"),
+			t({ ") {", '    _objChange("READ");', "    " }),
+			i(3),
+			t({ "", "}" }),
+		}),
+
+		s("queryExecute", {
+			t({ "queryExecute(", '    "', "        select", "            " }),
+			i(1, "emp_id"),
+			t({ "", "        from", "            " }),
+			i(2, "teomempcompany"),
+			t({ "", "        where", "            company_id=:" }),
+			i(3, "coid"),
+			t({ "", '    ",', "    {", "        " }),
+			i(4, "coid"),
+			t(":{value:REQUEST.SCookie."),
+			i(5, "coid"),
+			t({ ',sqltype:"cf_sql_integer"}', "    },", "    { datasource:REQUEST.SDSN }", ");" }),
+		}),
+
+		s("dump", {
+			t("Application.AppObj.SFUtil.SFWRITELOG(dump = {data: "),
+			i(1, "outData"),
+			t("});"),
+		}),
+
+		s("initUploadProcess", {
+			t(split_lines(init_upload_body)),
+			i(0),
+		}),
+
+		s("testFunction", {
+			t({
+				"function test() {",
+				'    this._ObjChange("READ");',
+				'    return {status: true, message: "Message Ok !"}',
+				"}",
+			}),
+			i(0),
+		}),
+
+		s("remark", {
+			t({ "/**", " * add by akn " }),
+			f(function()
+				return os.date("%Y%m%d %H:%M")
+			end, {}),
+			t({ "", " * " }),
+			i(0),
+			t({ "", " */" }),
+		}),
+	}, { key = "cfml_custom" }) -- key: reload mengganti snippet lama, bukan menambah duplikat
+end
+
+vim.g.loaded_cfml_ftplugin = true
+
+--[[ Breadcrumb manual CFML via LSP documentSymbol (NONAKTIF)
+
+Alasan tidak pakai nvim-navic:
+- documentSymbol dari cfmleditor-lsp mengembalikan range zero-width
+  (start == end), sehingga nvim-navic tidak bisa mendeteksi "cursor di dalam
+  function ini" kecuali cursor persis di baris deklarasi.
+- Grammar tree-sitter-cfml belum granular untuk cfscript, jadi breadcrumb
+  berbasis treesitter murni juga tidak bisa dipakai.
+
+Solusi: ambil daftar function dari LSP documentSymbol (baris deklarasinya
+akurat), lalu cari function dengan baris deklarasi terdekat SEBELUM cursor.
+Nama component diambil dari nama file (konvensi CFML).
+
+local symbols_cache = {}
+
+local function refresh_symbols()
 	local bufnr = vim.api.nvim_get_current_buf()
 	local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "cfml" })
 	if #clients == 0 then
@@ -423,15 +567,14 @@ local function cfml_refresh_symbols()
 			return
 		end
 
-		-- flatten (component tidak masuk sebagai symbol, jadi ini cuma function/method)
 		local flat = {}
 		local function walk(list)
 			for _, sym in ipairs(list) do
-				table.insert(flat, {
+				flat[#flat + 1] = {
 					name = sym.name,
 					kind = sym.kind,
 					line = sym.range and sym.range.start.line or 0,
-				})
+				}
 				if sym.children then
 					walk(sym.children)
 				end
@@ -442,327 +585,73 @@ local function cfml_refresh_symbols()
 		table.sort(flat, function(a, b)
 			return a.line < b.line
 		end)
-
-		cfml_symbols_cache[bufnr] = flat
+		symbols_cache[bufnr] = flat
 	end, bufnr)
 end
 
-------------------------------------------------------------
--- Refresh throttled/debounced: dipanggil tiap TextChanged,
--- tapi request LSP baru dikirim 500ms setelah berhenti mengetik
-------------------------------------------------------------
-local cfml_refresh_timer = nil
-
-local function cfml_refresh_symbols_throttled()
-	if cfml_refresh_timer then
-		cfml_refresh_timer:stop()
-		cfml_refresh_timer:close()
+-- Debounce: request LSP dikirim 500ms setelah berhenti mengetik
+local refresh_timer = nil
+local function refresh_symbols_debounced()
+	if refresh_timer then
+		refresh_timer:stop()
+		refresh_timer:close()
 	end
-	cfml_refresh_timer = vim.defer_fn(function()
-		cfml_refresh_symbols()
-		cfml_refresh_timer = nil
+	refresh_timer = vim.defer_fn(function()
+		refresh_symbols()
+		refresh_timer = nil
 	end, 500)
 end
 
-------------------------------------------------------------
--- Susun teks breadcrumb berdasarkan posisi cursor sekarang
-------------------------------------------------------------
-local function cfml_breadcrumb()
-	local bufnr = vim.api.nvim_get_current_buf()
+local function breadcrumb()
 	local parts = {}
 
-	-- Nama component = nama file (konvensi CFML)
 	local component_name = vim.fn.expand("%:t:r")
 	if component_name ~= "" then
-		table.insert(parts, "  " .. component_name)
+		parts[#parts + 1] = "  " .. component_name
 	end
 
-	local symbols = cfml_symbols_cache[bufnr]
+	local symbols = symbols_cache[vim.api.nvim_get_current_buf()]
 	if symbols and #symbols > 0 then
-		local cursor_line = vim.api.nvim_win_get_cursor(0)[1] - 1 -- 0-indexed
+		local cursor_line = vim.api.nvim_win_get_cursor(0)[1] - 1
 		local function_name
 
 		for _, sym in ipairs(symbols) do
-			if sym.line <= cursor_line then
-				if sym.kind == 12 or sym.kind == 6 then -- Function / Method
-					function_name = sym.name
-				end
-			else
+			if sym.line > cursor_line then
 				break
+			end
+			if sym.kind == 12 or sym.kind == 6 then -- Function / Method
+				function_name = sym.name
 			end
 		end
 
 		if function_name then
-			table.insert(parts, "󰊕 " .. function_name)
+			parts[#parts + 1] = "󰊕 " .. function_name
 		end
 	end
 
 	return table.concat(parts, " > ")
 end
 
-------------------------------------------------------------
--- Autocmd: refresh cache symbol
-------------------------------------------------------------
 vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "LspAttach" }, {
 	buffer = 0,
 	callback = function()
-		vim.defer_fn(cfml_refresh_symbols, 300)
+		vim.defer_fn(refresh_symbols, 300)
 	end,
 })
 
 vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "InsertLeave" }, {
 	buffer = 0,
-	callback = cfml_refresh_symbols_throttled,
+	callback = refresh_symbols_debounced,
 })
 
-------------------------------------------------------------
--- Autocmd: update tampilan winbar saat cursor pindah
-------------------------------------------------------------
 vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
 	buffer = 0,
 	callback = function()
-		local crumb = cfml_breadcrumb()
-		vim.wo.winbar = crumb ~= "" and crumb or ""
+		vim.wo.winbar = breadcrumb()
 	end,
 })
 
-------------------------------------------------------------
--- Command manual untuk tes cepat
-------------------------------------------------------------
 vim.api.nvim_buf_create_user_command(0, "CfmlBreadcrumb", function()
-	print(cfml_breadcrumb())
+	print(breadcrumb())
 end, { desc = "Tampilkan breadcrumb CFML (via LSP documentSymbol)" })
- ]]
-
--- config untuk menjalankan commandbox
-require("pcode.user.boxrun")
--- cegah snippet load berkali-kali
-if vim.g.loaded_cfml_snippets then
-	return
-end
-vim.g.loaded_cfml_snippets = true
--- config for snippets
-local ls = require("luasnip")
-
-local s = ls.snippet
-local t = ls.text_node
-local i = ls.insert_node
-local f = ls.function_node
-
-local filename = function()
-	return vim.fn.expand("%:t:r")
-end
-
-ls.add_snippets("cfml", {
-	s("componentName", {
-		t('component displayname = "'),
-		f(filename, {}),
-		t('" accessors="true" {'),
-		t({ "", "\t" }),
-		i(0),
-		t({ "", "}" }),
-	}),
-})
-
-ls.add_snippets("cfml", {
-	s("componentInit", {
-		t('component displayname = "'),
-		f(filename, {}),
-		t('" accessors="true" {'),
-
-		t({
-			"",
-			"",
-			"    function init() {",
-			"        return this;",
-			"    }",
-			"",
-			"\t",
-		}),
-
-		i(0),
-
-		t({
-			"",
-			"}",
-		}),
-	}),
-})
-
-ls.add_snippets("cfml", {
-	s("functionName", {
-		t("public any function "),
-		i(1, "namaFunction"),
-		t("("),
-		i(2, "parameter"),
-		t({ ") {", "" }),
-
-		t('    _objChange("READ");'),
-
-		t({ "", "    " }),
-		i(3),
-
-		t({
-			"",
-			"}",
-		}),
-	}),
-})
-
-ls.add_snippets("cfml", {
-	s("queryExecute", {
-		t({
-			"queryExecute(",
-			'    "',
-			"        select",
-			"            ",
-		}),
-
-		i(1, "emp_id"),
-
-		t({
-			"",
-			"        from",
-			"            ",
-		}),
-
-		i(2, "teomempcompany"),
-
-		t({
-			"",
-			"        where",
-			"            company_id=:",
-		}),
-
-		i(3, "coid"),
-
-		t({
-			"",
-			'    ",',
-			"    {",
-			"        ",
-		}),
-
-		i(4, "coid"),
-
-		t({
-			":{value:REQUEST.SCookie.",
-		}),
-
-		i(5, "coid"),
-
-		t({
-			',sqltype:"cf_sql_integer"}',
-			"    },",
-			"    { datasource:REQUEST.SDSN }",
-			");",
-		}),
-	}),
-})
-
-ls.add_snippets("cfml", {
-	s("dump", {
-		t("Application.AppObj.SFUtil.SFWRITELOG(dump = {data: "),
-		i(1, "outData"),
-		t("});"),
-	}),
-})
-
-ls.add_snippets("cfml", {
-	s("initUploadProcess", {
-		t({
-			[[public any function initUpload(struct argEntries) {]],
-			[[    _ObjChange("EDIT");]],
-			[[    // code mulai dari sini]],
-			[[    var bBckGround = argEntries.keyExists("isbackground") ? argEntries.isbackground : 0;]],
-			[[    var scheduledate = argEntries.keyExists("isbackground") ? (]],
-			[[        argEntries.keyExists("scheduledate") ? argEntries.scheduledate : now()]],
-			[[    ) : "";]],
-			[[    var blogProc = 1;]],
-			[[    var procCode = "ROVT#REQUEST.SCookie.User.uid##dateFormat(now(), "yyyymmdd")##timeFormat(now(), "hhmmss")#";]],
-			[[    var procFunc = "qlid=CL_OvertimeReport.processPerData||lastFuncName";]],
-			"",
-			[[    Application.APPOBJ.SFProcess.InitAttribute({processName: "Overtime Report Process", processModule: "Attendance"});]],
-			[[    var retData = Application.APPOBJ.SFProcess.InitProcess(]],
-			[[        procCode,]],
-			[[        procFunc,]],
-			[[        qData,]],
-			[[        "",]],
-			[[        "",]],
-			[[        bBckGround,]],
-			[[        scheduledate,]],
-			[[        1,]],
-			[[        "emp_name"]],
-			[[    );]],
-			[[    retData.apidirection = "qlid=CL_OvertimeReport.uploadProcess";]],
-			[[    return retData;]],
-			[[}]],
-			"",
-			[[public any function lastFuncName(query theQuery) {]],
-			[[    try {]],
-			[[        // code here]],
-			[[        return true;]],
-			[[    } catch (e) {]],
-			[[        Application.AppObj.SFUtil.SFWRITELOG(dump = {exception: e});]],
-			[[        return false;]],
-			[[    }]],
-			[[}]],
-			"",
-			[[public any function uploadProcess(struct argEntries) {]],
-			[[    _ObjChange("EDIT");]],
-			[[    if (isDefined("argEntries.payload")) {]],
-			[[        scPassData = deserializeJSON(arguments.argEntries.payload);]],
-			[[    } else if (isStruct(argEntries)) {]],
-			[[        scPassData = argEntries;]],
-			[[    } else {]],
-			[[        return {HSTATUS: 400, MESSAGE: "Invalid passing form or payload"};]],
-			[[    }]],
-			"",
-			[[    scPassData.maxprocess = 5;]],
-			[[    var retData = Application.APPOBJ.SFProcess.runProcess(argumentcollection = scPassData);]],
-			[[    retData.apidirection = "qlid=CL_OvertimeReport.uploadProcess";]],
-			[[    return retData;]],
-			[[}]],
-			"",
-			[[public any function processPerData(string processCode, numeric currow, query qData) {]],
-			[[    try {]],
-			[[        // code here]],
-			[[    } catch (any e) {]],
-			[[        LOCAL.pathlog = Application.AppObj.SFUtil.SFWRITELOG(dump = {catch: e});]],
-			[[        LOCAL.empName = qData.emp_name[currow];]],
-			[[        Application.APPOBJ.SFProcess.AddFailure(]],
-			[[            Arguments.processcode,]],
-			[[            Arguments.rowData.seq_id,]],
-			[[            "Error Overtime Report For : " & LOCAL.empName,]],
-			[[            "#LOCAL.pathlog#"]],
-			[[        );]],
-			[[        return false;]],
-			[[    }]],
-			[[    return true;]],
-			[[}]],
-		}),
-
-		i(0),
-	}),
-
-	s("testFunction", {
-		t({
-			[[function test() {]],
-			[[    this._ObjChange("READ");]],
-			[[    return {status: true, message: "Message Ok !"}]],
-			[[}]],
-		}),
-
-		i(0),
-	}),
-
-	s("remark", {
-		t({ "/**", " * add by akn " }),
-		f(function()
-			return os.date("%Y%m%d %H:%M")
-		end, {}),
-		t({ "", " * " }),
-		i(0),
-		t({ "", " */" }),
-	}),
-})
+]]
