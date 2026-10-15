@@ -122,13 +122,28 @@ return {
 				completion = { menu = { auto_show = true } },
 			},
 			sources = {
-				-- "ripgrep" (dan sumber lain) ditambahkan dari spec plugin lain lewat opts_extend
-				default = { "lsp", "snippets", "path", "buffer" },
+				default = { "lsp", "path", "snippets", "buffer", "ripgrep" },
 				providers = {
-					lsp = { score_offset = 100 },
-					snippets = { score_offset = 50 },
-					path = { score_offset = 20 },
-					buffer = { score_offset = -20 },
+					ripgrep = {
+						module = "blink-ripgrep",
+						name = "Ripgrep",
+						opts = {
+							prefix_min_len = 3,
+							backend = {
+								context_size = 5,
+								ripgrep = {
+									max_filesize = "1M",
+									additional_rg_options = {},
+								},
+							},
+						},
+						transform_items = function(_, items)
+							for _, item in ipairs(items) do
+								item.kind_name = "Ripgrep"
+							end
+							return items
+						end,
+					},
 				},
 			},
 			-- fuzzy = { implementation = "prefer_rust_with_warning" },
@@ -138,7 +153,7 @@ return {
 				-- Fungsi pertama mengurutkan per sumber; return nil = lanjut ke sort berikutnya.
 				-- Jangan taruh "exact" di depan, karena kata yang persis sama (mis. dari
 				-- Ripgrep) akan mengalahkan LSP.
-				sorts = {
+				--[[ 	sorts = {
 					function(a, b)
 						local rank = { lsp = 1, snippets = 2, path = 3, buffer = 4, ripgrep = 5 }
 						local ra, rb = rank[a.source_id] or 9, rank[b.source_id] or 9
@@ -148,7 +163,7 @@ return {
 					end,
 					"score",
 					"sort_text",
-				},
+				}, ]]
 			},
 		}
 	end,
