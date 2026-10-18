@@ -52,3 +52,13 @@ vim.api.nvim_create_autocmd("FileType", {
 		vim.opt.tabstop = 4
 	end,
 })
+
+vim.filetype.add({
+	extension = {
+		zsh = "zsh",
+	},
+	filename = {
+		[".zshrc"] = "zsh",
+		[".zprofile"] = "zsh",
+	},
+})

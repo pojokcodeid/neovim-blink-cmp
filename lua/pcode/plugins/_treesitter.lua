@@ -3,16 +3,7 @@ return {
 		"nvim-treesitter/nvim-treesitter",
 		branch = "main",
 		event = "VeryLazy",
-		-- lazy = false, -- branch main TIDAK mendukung lazy-loading
-		cmd = {
-			"TSInstall",
-			"TSInstallSync",
-			"TSUpdate",
-			"TSUpdateSync",
-			"TSUninstall",
-			"TSUninstallInfo",
-			"TSInstallFromGrammar",
-		},
+		-- lazy = false, -- branch main tidak mendukung lazy-loading
 		build = ":TSUpdate",
 		config = function()
 			-- daftarkan parser custom CFML SEBELUM :TSUpdate dipanggil
@@ -40,10 +31,69 @@ return {
 					}
 				end,
 			})
+
 			local ts = require("nvim-treesitter")
 			ts.setup({})
 
-			-- install parser yang dibutuhkan
+			-- petakan filetype -> parser
+			vim.treesitter.language.register("javascript", "javascriptreact")
+			vim.treesitter.language.register("tsx", "typescriptreact")
+
+			-- nyalakan treesitter untuk satu buffer, jika parser-nya sudah terinstal
+			local no_ts_indent = { cfml = true, cfscript = true }
+
+			local function attach(buf)
+				if not vim.api.nvim_buf_is_valid(buf) or not vim.api.nvim_buf_is_loaded(buf) then
+					return
+				end
+				local ft = vim.bo[buf].filetype
+				if ft == "" then
+					return
+				end
+
+				local lang = vim.treesitter.language.get_lang(ft) or ft
+				-- parser belum terinstal -> lewati tanpa error
+				if not pcall(vim.treesitter.language.add, lang) then
+					return
+				end
+				-- highlight
+				if not pcall(vim.treesitter.start, buf, lang) then
+					return
+				end
+
+				vim.api.nvim_buf_call(buf, function()
+					-- fold
+					vim.wo[0][0].foldexpr = "v:lua.vim.treesitter.foldexpr()"
+					vim.wo[0][0].foldmethod = "expr"
+
+					-- indent
+					if no_ts_indent[lang] then
+						vim.bo.autoindent = true
+						vim.bo.indentexpr = ""
+					elseif vim.treesitter.query.get(lang, "indents") then
+						vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+					end
+				end)
+			end
+
+			local function attach_all()
+				for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+					attach(buf)
+				end
+			end
+
+			-- setiap kali filetype di-set, coba nyalakan (tanpa pattern = semua filetype)
+			vim.api.nvim_create_autocmd("FileType", {
+				group = vim.api.nvim_create_augroup("UserTreesitterAttach", { clear = true }),
+				callback = function(args)
+					attach(args.buf)
+				end,
+			})
+
+			-- buffer yang sudah terbuka sebelum config ini jalan
+			attach_all()
+
+			-- install parser; setelah selesai, nyalakan di buffer yang sudah terbuka
 			ts.install({
 				"lua",
 				"luadoc",
@@ -54,57 +104,15 @@ return {
 				"typescript",
 				"tsx",
 				"html",
+				"json",
 				"cfml",
 				"cfscript",
 				"sql",
-			})
-
-			local ts_filetypes = ts.get_installed(true)
-			-- filetype yang PUNYA query indent lengkap (bukan cfml/cfscript)
-			local keys_to_delete = { "cfml", "cfscript" }
-			local ts_indent_filetypes = {}
-			for _, key in ipairs(keys_to_delete) do
-				if ts_filetypes[key] ~= nil then
-					ts_indent_filetypes[key] = ts_filetypes[key]
-				end
-			end
-
-			-- highlight
-			vim.api.nvim_create_autocmd("FileType", {
-				pattern = ts_filetypes,
-				callback = function()
-					pcall(vim.treesitter.start)
-				end,
-			})
-
-			-- indent
-			vim.api.nvim_create_autocmd("FileType", {
-				pattern = ts_indent_filetypes,
-				callback = function()
-					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-				end,
-			})
-
-			-- untuk cfml/cfscript, pastikan pakai autoindent bawaan Vim
-			vim.api.nvim_create_autocmd("FileType", {
-				pattern = { "cfml", "cfscript" },
-				callback = function()
-					vim.bo.autoindent = true
-					vim.bo.indentexpr = "" -- kosongkan, biar fallback ke autoindent biasa
-				end,
-			})
-
-			-- fold
-			vim.api.nvim_create_autocmd("FileType", {
-				pattern = ts_filetypes,
-				callback = function()
-					vim.wo[0][0].foldexpr = "v:lua.vim.treesitter.foldexpr()"
-					vim.wo[0][0].foldmethod = "expr"
-				end,
-			})
+			}):await(function()
+				vim.schedule(attach_all)
+			end)
 
 			vim.api.nvim_create_user_command("TSInstallInfo", function()
-				local ts = require("nvim-treesitter")
 				local pickers = require("telescope.pickers")
 				local finders = require("telescope.finders")
 				local conf = require("telescope.config").values
@@ -160,7 +168,6 @@ return {
 
 								actions.close(bufnr)
 
-								-- cek ulang status terkini, bukan dari hasil yang mungkin sudah usang
 								local is_installed = vim.list_contains(ts.get_installed(), lang)
 
 								if is_installed then
@@ -172,6 +179,8 @@ return {
 									vim.notify("Installing parser: " .. lang, vim.log.levels.INFO)
 									ts.install({ lang }):await(function()
 										vim.notify("Parser installed: " .. lang, vim.log.levels.INFO)
+										-- langsung nyalakan di buffer yang sedang terbuka
+										vim.schedule(attach_all)
 									end)
 								end
 							end)
@@ -185,9 +194,8 @@ return {
 	-- filetype detection CFML
 	{
 		"nvim-lua/plenary.nvim",
-		-- lazy = false,
-		-- priority = 1000,
-		event = "VeryLazy",
+		lazy = false,
+		priority = 1000, -- supaya filetype terdaftar sebelum file dibuka
 		config = function()
 			vim.filetype.add({
 				extension = {
@@ -196,6 +204,7 @@ return {
 					cfc = "cfml",
 					sfc = "cfml",
 					cfs = "cfscript",
+					jsx = "javascriptreact",
 				},
 			})
 		end,
