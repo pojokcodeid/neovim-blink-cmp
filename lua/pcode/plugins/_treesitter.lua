@@ -194,7 +194,8 @@ return {
 	-- filetype detection CFML
 	{
 		"nvim-lua/plenary.nvim",
-		lazy = false,
+		-- lazy = false,
+		event = "VeryLazy",
 		priority = 1000, -- supaya filetype terdaftar sebelum file dibuka
 		config = function()
 			vim.filetype.add({
