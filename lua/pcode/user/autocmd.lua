@@ -45,7 +45,7 @@ autocmd("VimResized", {
 -- Tab size 4 untuk JavaScript / TypeScript
 autocmd("FileType", {
 	group = augroup("_tabsize"),
-	pattern = { "javascript", "typescript" },
+	pattern = { "javascript", "typescript", "go" },
 	callback = function()
 		vim.opt_local.tabstop = 4
 		vim.opt_local.shiftwidth = 4
