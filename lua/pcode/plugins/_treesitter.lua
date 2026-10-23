@@ -29,6 +29,13 @@ return {
 							branch = "master",
 						},
 					}
+
+					parsers.dotenv = {
+						install_info = {
+							url = "https://github.com/pnx/tree-sitter-dotenv",
+						},
+						filetype = "dotenv",
+					}
 				end,
 			})
 
@@ -206,6 +213,12 @@ return {
 					sfc = "cfml",
 					cfs = "cfscript",
 					jsx = "javascriptreact",
+				},
+				filename = {
+					[".env"] = "dotenv",
+				},
+				pattern = {
+					["%.env%..+"] = "dotenv",
 				},
 			})
 		end,

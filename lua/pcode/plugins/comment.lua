@@ -26,5 +26,6 @@ return {
 	},
 	config = function(_, opts)
 		require("Comment").setup(opts)
+		require("Comment.ft").set("dotenv", "#%s")
 	end,
 }
