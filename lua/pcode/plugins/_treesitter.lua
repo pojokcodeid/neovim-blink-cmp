@@ -36,6 +36,15 @@ return {
 						},
 						filetype = "dotenv",
 					}
+
+					parsers.batch = {
+						install_info = {
+							url = "https://github.com/wharflab/tree-sitter-batch",
+							files = { "src/parser.c" }, -- tambahkan "src/scanner.c" jika repo punya file itu
+							branch = "main",
+						},
+						filetype = "dosbatch",
+					}
 				end,
 			})
 
@@ -45,6 +54,7 @@ return {
 			-- petakan filetype -> parser
 			vim.treesitter.language.register("javascript", "javascriptreact")
 			vim.treesitter.language.register("tsx", "typescriptreact")
+			vim.treesitter.language.register("batch", "dosbatch")
 
 			-- nyalakan treesitter untuk satu buffer, jika parser-nya sudah terinstal
 			local no_ts_indent = { cfml = true, cfscript = true }
