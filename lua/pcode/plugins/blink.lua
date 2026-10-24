@@ -122,8 +122,17 @@ return {
 				completion = { menu = { auto_show = true } },
 			},
 			sources = {
-				default = { "lsp", "path", "snippets", "buffer", "ripgrep" },
+				default = { "lsp", "path", "snippets", "buffer", "ripgrep", "dotenv" },
 				providers = {
+					dotenv = {
+						name = "dotenv",
+						module = "custom.blink_dotenv",
+						score_offset = -1,
+						opts = {
+							load_shell = true,
+							mask_secrets = true,
+						},
+					},
 					ripgrep = {
 						module = "blink-ripgrep",
 						name = "Ripgrep",
@@ -171,4 +180,8 @@ return {
 		"sources.default",
 		"sources.providers",
 	},
+	config = function(_, opts)
+		require("blink.cmp").setup(opts)
+		require("custom.blink_dotenv").setup()
+	end,
 }

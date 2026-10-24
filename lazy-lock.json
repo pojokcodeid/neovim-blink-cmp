@@ -7,6 +7,7 @@
   "auto-lualine.nvim": { "branch": "main", "commit": "43319407326c89885736df89b4400a6f1dcb07ef" },
   "blink-ripgrep.nvim": { "branch": "main", "commit": "0c669b0f6ff373b2583ffc0074544cc2c6d038b6" },
   "blink.cmp": { "branch": "main", "commit": "78336bc89ee5365633bcf754d93df01678b5c08f" },
+  "cmp-dotenv": { "branch": "main", "commit": "4dd53aab60982f1f75848aec5e6214986263325e" },
   "colorful-menu.nvim": { "branch": "master", "commit": "196ddf16d5f8fec09ba7f20e6b153aa5188e907b" },
   "conform.nvim": { "branch": "master", "commit": "016802de402556da54c36bd7359b441266b01cdd" },
   "dracula.nvim": { "branch": "main", "commit": "ae752c13e95fb7c5f58da4b5123cb804ea7568ee" },
