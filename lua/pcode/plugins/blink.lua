@@ -131,6 +131,9 @@ return {
 						opts = {
 							load_shell = true,
 							mask_secrets = true,
+							dotenv_environment = "local|development", -- hanya .env, .env.local, .env.development
+							eval_on_confirm = false,
+							documentation_kind = "markdown",
 						},
 					},
 					ripgrep = {

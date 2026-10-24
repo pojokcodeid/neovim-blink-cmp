@@ -1,17 +1,21 @@
 -- ~/.config/nvim/lua/custom/blink_dotenv.lua
 -- Source blink.cmp native untuk variabel environment (.env), tanpa nvim-cmp.
+-- Opsi dan API diadaptasi dari SergioRibera/cmp-dotenv.
 --
 -- Fitur:
---   * Root proyek otomatis (monorepo friendly), membaca .env, .env.local,
---     .env.development, dst. (file belakangan menimpa file sebelumnya)
+--   * Root proyek otomatis (monorepo friendly) atau `path` manual
+--   * Membaca .env, .env.local, .env.development, dst. (file belakangan menimpa)
+--   * `dotenv_environment` (regex) memilih file .env.<suffix> mana yang dimuat
+--   * `file_priority` (comparator) mengatur urutan file
+--   * `eval_on_confirm`: sisipkan NILAI, bukan nama (rahasia dilindungi)
 --   * Kunci dari .env.example / .env.sample ikut disarankan
 --   * Sisipan sadar bahasa: process.env.X, os.environ["X"], ${X}, %X%, dst.
---     Jika kursor sudah di dalam accessor, hanya nama yang disisipkan
---   * Nilai rahasia (TOKEN, SECRET, PASSWORD, ...) disamarkan di dokumentasi
---   * Cache berdasarkan mtime file (cepat)
---   * Diagnostik: peringatan untuk variabel yang dipakai tapi belum didefinisikan
---   * Saat mengedit file .env: saran kunci dari .env.example yang belum ada
---   * Perintah: :DotenvReload :DotenvToggleSecrets :DotenvPick :DotenvGoto
+--   * Nilai rahasia disamarkan di dokumentasi
+--   * Cache berdasarkan mtime file
+--   * Diagnostik variabel yang dipakai tapi belum didefinisikan
+--   * Saat mengedit file .env: saran kunci dari file lain / .env.example
+--   * Perintah: :DotenvReload :DotenvToggleSecrets :DotenvToggleEval :DotenvPick :DotenvGoto
+--   * API: get_env_variable, get_all_env, set_env_variable, load
 
 local uv = vim.uv or vim.loop
 
@@ -21,14 +25,25 @@ local M = {}
 -- Konfigurasi
 ---------------------------------------------------------------------------
 local cfg = {
-	root_markers = { ".git", "package.json", "pyproject.toml", "Cargo.toml", "go.mod", "composer.json", "Gemfile" },
+	-- (setara cmp-dotenv)
+	path = nil, -- string / function(bufnr) -> folder pencarian; nil = root proyek otomatis
 	load_shell = true, -- sertakan variabel dari environment shell
+	item_kind = nil, -- angka CompletionItemKind untuk variabel (nil = Variable)
+	eval_on_confirm = false, -- true = sisipkan nilai, bukan nama variabel
+	show_documentation = true, -- tampilkan jendela dokumentasi
+	show_content_on_docs = true, -- tampilkan nilai di dokumentasi
+	documentation_kind = "markdown", -- "markdown" | "plaintext"
+	dotenv_environment = ".*", -- regex Vim untuk suffix .env.<suffix>; ".env" selalu dimuat
+	file_priority = nil, -- function(nama_a, nama_b) -> boolean; file terakhir = efektif
+
+	-- (tambahan)
+	root_markers = { ".git", "package.json", "pyproject.toml", "Cargo.toml", "go.mod", "composer.json", "Gemfile" },
 	shell_only_in_context = true, -- variabel shell hanya muncul setelah $, %, process.env., dst.
 	include_examples = true, -- sertakan kunci dari .env.example / .env.sample
+	eval_secrets = false, -- izinkan eval_on_confirm untuk nilai yang tampak rahasia
 	smart_wrap = true, -- sisipan sadar bahasa (false = selalu nama saja)
 	min_chars = 2, -- minimal karakter agar saran muncul di luar konteks
-	show_values = true, -- tampilkan nilai di dokumentasi
-	mask_secrets = true, -- samarkan nilai yang tampak rahasia
+	mask_secrets = true, -- samarkan nilai yang tampak rahasia di dokumentasi
 	secret_patterns = {
 		"SECRET",
 		"TOKEN",
@@ -81,12 +96,37 @@ local function env_rank(name)
 	return 3
 end
 
+-- filter dotenv_environment: ".env" selalu lolos, ".env.<suffix>" dicocokkan dengan regex
+local function env_allowed(name)
+	if name == ".env" then
+		return true
+	end
+	local suffix = name:gsub("^%.env%.", "")
+	local ok, r = pcall(vim.fn.match, suffix, cfg.dotenv_environment)
+	if not ok then
+		return true
+	end
+	return r >= 0
+end
+
 local function is_env_file(bufnr)
 	local name = vim.fs.basename(vim.api.nvim_buf_get_name(bufnr))
 	return env_kind(name) ~= nil
 end
 
 local function find_root(bufnr)
+	if cfg.path then
+		local p = cfg.path
+		if type(p) == "function" then
+			p = p(bufnr or 0)
+		end
+		if type(p) == "string" and p ~= "" then
+			p = vim.fn.fnamemodify(vim.fn.expand(p), ":p")
+			p = p:gsub("[/\\]$", "")
+			return p
+		end
+	end
+
 	local name = vim.api.nvim_buf_get_name(bufnr or 0)
 	local start = (name ~= "" and name) or (uv.cwd() .. "/_")
 	local markers = {}
@@ -99,10 +139,8 @@ local function find_root(bufnr)
 	return (ok and root) or uv.cwd()
 end
 
-local function is_secret(key)
-	if not cfg.mask_secrets then
-		return false
-	end
+-- apakah nama variabel tampak rahasia (terlepas dari pengaturan mask_secrets)
+local function looks_secret(key)
 	local upper = key:upper()
 	for _, p in ipairs(cfg.secret_patterns) do
 		if upper:find(p) then
@@ -113,13 +151,13 @@ local function is_secret(key)
 end
 
 local function display(key, value)
-	if not cfg.show_values then
+	if not cfg.show_content_on_docs then
 		return "••••••••"
 	end
 	if value == "" then
 		return "(kosong)"
 	end
-	if is_secret(key) then
+	if cfg.mask_secrets and looks_secret(key) then
 		return "••••••••"
 	end
 	if #value > 100 then
@@ -132,6 +170,7 @@ end
 -- Parser .env + cache
 ---------------------------------------------------------------------------
 local file_cache = {}
+local custom = {} -- variabel manual lewat set_env_variable
 
 local function parse_line(line)
 	line = line:gsub("\r$", "")
@@ -187,12 +226,18 @@ local function load_project(root)
 	for name, t in vim.fs.dir(root) do
 		if t == "file" or t == "link" then
 			local kind = env_kind(name)
-			if kind then
+			if kind and env_allowed(name) then
 				files[#files + 1] = { name = name, path = root .. "/" .. name, kind = kind, rank = env_rank(name) }
 			end
 		end
 	end
 	table.sort(files, function(a, b)
+		if cfg.file_priority then
+			local ok, r = pcall(cfg.file_priority, a.name, b.name)
+			if ok then
+				return r and true or false
+			end
+		end
 		if a.rank ~= b.rank then
 			return a.rank < b.rank
 		end
@@ -210,7 +255,7 @@ local function load_project(root)
 	return { root = root, defs = defs, examples = examples, files = files }
 end
 
--- gabungkan .env + example + shell menjadi satu peta
+-- gabungkan .env + example + shell + manual menjadi satu peta
 local function collect(project)
 	local out = {}
 	for key, list in pairs(project.defs) do
@@ -235,7 +280,31 @@ local function collect(project)
 			end
 		end
 	end
+	for key, v in pairs(custom) do
+		local e = out[key] or {}
+		e.kind = (e.kind == "env") and "env" or "custom"
+		e.source = e.source or "manual"
+		e.custom = v
+		out[key] = e
+	end
 	return out
+end
+
+-- nilai efektif: manual > .env > shell > contoh
+local function effective_value(e)
+	if e.custom then
+		return e.custom.value
+	end
+	if e.defs then
+		return e.defs[#e.defs].value
+	end
+	if e.shell then
+		return e.shell
+	end
+	if e.example then
+		return e.example.value
+	end
+	return nil
 end
 
 local function visible(entry, special)
@@ -246,24 +315,79 @@ local function visible(entry, special)
 end
 
 local function build_doc(key, e)
-	local lines = { ("**%s**"):format(key), "" }
+	local md = cfg.documentation_kind ~= "plaintext"
+	local function code(s)
+		return md and ("`%s`"):format(s) or s
+	end
+	local lines = { md and ("**%s**"):format(key) or key, "" }
 	if e.defs then
 		for i, d in ipairs(e.defs) do
 			local mark = (#e.defs > 1 and i == #e.defs) and "  ← efektif" or ""
-			lines[#lines + 1] = ("- `%s:%d` → `%s`%s"):format(d.file, d.line, display(key, d.value), mark)
+			lines[#lines + 1] = ("- %s → %s%s"):format(
+				code(d.file .. ":" .. d.line),
+				code(display(key, d.value)),
+				mark
+			)
 		end
 	end
 	if e.example then
-		lines[#lines + 1] = ("- `%s:%d` (contoh) → `%s`"):format(
-			e.example.file,
-			e.example.line,
-			display(key, e.example.value)
+		lines[#lines + 1] = ("- %s (contoh) → %s"):format(
+			code(e.example.file .. ":" .. e.example.line),
+			code(display(key, e.example.value))
 		)
 	end
 	if e.shell then
-		lines[#lines + 1] = ("- shell → `%s`"):format(display(key, e.shell))
+		lines[#lines + 1] = ("- shell → %s"):format(code(display(key, e.shell)))
+	end
+	if e.custom then
+		lines[#lines + 1] = ("- manual → %s"):format(code(display(key, tostring(e.custom.value))))
+		if e.custom.docs then
+			lines[#lines + 1] = ""
+			lines[#lines + 1] = tostring(e.custom.docs)
+		end
 	end
 	return table.concat(lines, "\n")
+end
+
+local function make_doc(text)
+	if not cfg.show_documentation then
+		return nil
+	end
+	return { kind = (cfg.documentation_kind == "plaintext") and "plaintext" or "markdown", value = text }
+end
+
+---------------------------------------------------------------------------
+-- API publik (nama sama dengan cmp-dotenv.dotenv)
+---------------------------------------------------------------------------
+-- Tambahkan variabel manual ke sistem saran (docs opsional).
+function M.set_env_variable(name, value, docs)
+	custom[name] = { value = value, docs = docs }
+end
+
+-- Semua variabel proyek saat ini: { NAMA = nilai }
+function M.get_all_env(bufnr)
+	local out = {}
+	for key, e in pairs(collect(load_project(find_root(bufnr or 0)))) do
+		out[key] = effective_value(e)
+	end
+	return out
+end
+
+-- Ambil satu variabel; kembalikan `default` jika tidak ada.
+function M.get_env_variable(name, default)
+	local v = M.get_all_env()[name]
+	if v == nil then
+		return default
+	end
+	return v
+end
+
+-- force = true membuang cache file lebih dulu.
+function M.load(force)
+	if force then
+		file_cache = {}
+	end
+	return M.get_all_env()
 end
 
 ---------------------------------------------------------------------------
@@ -439,6 +563,7 @@ function Source:get_completions(ctx, callback)
 	local word = before:sub(ws)
 
 	local Kind = require("blink.cmp.types").CompletionItemKind
+	local var_kind = cfg.item_kind or Kind.Variable
 	local project = load_project(find_root(bufnr))
 	local items = {}
 
@@ -471,7 +596,7 @@ function Source:get_completions(ctx, callback)
 						seen[key] = true
 						items[#items + 1] = {
 							label = key,
-							kind = Kind.Variable,
+							kind = var_kind,
 							filterText = key,
 							labelDetails = { description = other.file },
 							textEdit = {
@@ -481,15 +606,9 @@ function Source:get_completions(ctx, callback)
 									["end"] = { line = row, character = col },
 								},
 							},
-							documentation = {
-								kind = "markdown",
-								value = ("**%s**\n\n- `%s:%d` → `%s`"):format(
-									key,
-									other.file,
-									other.line,
-									display(key, other.value)
-								),
-							},
+							documentation = make_doc(
+								("%s\n\n- %s:%d → %s"):format(key, other.file, other.line, display(key, other.value))
+							),
 						}
 					end
 				end
@@ -512,11 +631,20 @@ function Source:get_completions(ctx, callback)
 	local all = collect(project)
 	for key, e in pairs(all) do
 		if visible(e, special) then
-			local rank = (e.kind == "env" and 0) or (e.kind == "example" and 1) or 2
+			local from_env = (e.kind == "env" or e.kind == "custom")
+			local rank = (from_env and 0) or (e.kind == "example" and 1) or 2
+
 			local text = ref and ref(key) or key
+			if cfg.eval_on_confirm then
+				local v = effective_value(e)
+				if v and v ~= "" and (cfg.eval_secrets or not looks_secret(key)) then
+					text = tostring(v)
+				end
+			end
+
 			items[#items + 1] = {
 				label = key,
-				kind = (e.kind == "env" and Kind.Variable) or (e.kind == "example" and Kind.Field) or Kind.Constant,
+				kind = (from_env and var_kind) or (e.kind == "example" and Kind.Field) or Kind.Constant,
 				filterText = key,
 				sortText = ("%d_%s"):format(rank, key),
 				labelDetails = { description = e.source },
@@ -527,7 +655,7 @@ function Source:get_completions(ctx, callback)
 						["end"] = { line = row, character = col },
 					},
 				},
-				documentation = { kind = "markdown", value = build_doc(key, e) },
+				documentation = make_doc(build_doc(key, e)),
 			}
 		end
 	end
@@ -577,7 +705,7 @@ local function refresh_diagnostics(bufnr)
 					break
 				end
 				init = e + 1
-				if name and not (project.defs[name] or shell[name] or ignore[name]) then
+				if name and not (project.defs[name] or shell[name] or ignore[name] or custom[name]) then
 					local only_example = project.examples[name] ~= nil
 					diags[#diags + 1] = {
 						lnum = i - 1,
@@ -667,6 +795,13 @@ function M.setup(opts)
 		cfg.mask_secrets = not cfg.mask_secrets
 		notify(cfg.mask_secrets and "Nilai rahasia disamarkan" or "Nilai rahasia DITAMPILKAN", vim.log.levels.WARN)
 	end, { desc = "Samarkan/tampilkan nilai rahasia" })
+
+	vim.api.nvim_create_user_command("DotenvToggleEval", function()
+		cfg.eval_on_confirm = not cfg.eval_on_confirm
+		notify(
+			cfg.eval_on_confirm and "eval_on_confirm AKTIF: nilai disisipkan" or "eval_on_confirm mati: nama disisipkan"
+		)
+	end, { desc = "Sisipkan nilai atau nama variabel" })
 
 	vim.api.nvim_create_user_command("DotenvPick", pick, { desc = "Pilih & sisipkan variabel environment" })
 	vim.api.nvim_create_user_command("DotenvGoto", goto_def, { desc = "Lompat ke definisi variabel di .env" })
