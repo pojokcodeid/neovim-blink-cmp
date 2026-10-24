@@ -10,7 +10,7 @@ return {
 				numbers = "NONE",
 				strings = "NONE",
 				comments = "italic",
-				keywords = "bold,italic",
+				keywords = "italic",
 				constants = "NONE",
 				functions = "italic",
 				operators = "NONE",
@@ -21,7 +21,8 @@ return {
 				tags = "italic",
 			},
 			colors = {
-				bg_statusline = "#282c34",
+				-- bg_statusline = "#282c34",
+				bg_statusline = "NONE",
 				onedark = {
 					green = "#99c379",
 					gray = "#8094b4",
@@ -35,6 +36,16 @@ return {
 				},
 				onedark_dark = {
 					bg_statusline = "#000",
+					green = "#99c379",
+					gray = "#8094b4",
+					red = "#e06c75",
+					purple = "#c678dd",
+					yellow = "#e5c07a",
+					blue = "#61afef",
+					cyan = "#56b6c2",
+					indentline = "#3b4261",
+					float_bg = "#16191D",
+					bg = "#16191D",
 				},
 			},
 			options = {
@@ -51,6 +62,7 @@ return {
 				lCursor = { fg = "${bg}", bg = "${fg}" }, -- the character under the cursor when |language-mapping| is used (see 'guicursor')
 				CursorIM = { fg = "${bg}", bg = "${fg}" }, -- like Cursor, but used when in IME mode |CursorIM|
 				CursorColumn = { bg = "#333842" }, -- Screen-column at the cursor, when 'cursorcolumn' is set.
+				Whitespace = { fg = "#3E4450" }, -- Screen-column at the cursor, when 'cursorcolumn' is set.
 				-- overide nvimtree folder icon fill color
 				NvimTreeFolderIcon = { fg = "${gray}" },
 				-- overide nvimtree text fill color folder opened
@@ -118,7 +130,7 @@ return {
 				NonText = { bg = "NONE", fg = "#3E4450" },
 				MasonBackdrop = { link = "NormalFloat" },
 				NormalTab = { fg = "${gray}", bg = "${bg}" },
-				ColorColumnTab = { bg = "#3b4261", fg = "${gray}" },
+				ColorColumnTab = { bg = "#3E4450", fg = "#f8f8f2" },
 			},
 		})
 		local colorscheme = pcode.themes.onedarkpro or "onedark"

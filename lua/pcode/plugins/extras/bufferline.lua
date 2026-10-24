@@ -209,6 +209,9 @@ return {
 					on_click = function(_, _, button, _, buffer)
 						focus_tab(buffer, button)
 					end,
+					fg = function(buffer)
+						return buffer.is_focused and hl_attr("ColorColumnTab", "fg") or hl_attr("NormalTab", "fg")
+					end,
 					bg = function(buffer)
 						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
 					end,
@@ -224,6 +227,9 @@ return {
 						vim.schedule(function()
 							close_buffer(bufnr)
 						end)
+					end,
+					fg = function(buffer)
+						return buffer.is_focused and hl_attr("ColorColumnTab", "fg") or hl_attr("NormalTab", "fg")
 					end,
 					bg = function(buffer)
 						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")

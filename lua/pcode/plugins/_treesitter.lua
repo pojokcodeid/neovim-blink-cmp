@@ -223,9 +223,13 @@ return {
 					sfc = "cfml",
 					cfs = "cfscript",
 					jsx = "javascriptreact",
+					zsh = "zsh",
+					command = "zsh",
 				},
 				filename = {
 					[".env"] = "dotenv",
+					[".zshrc"] = "zsh",
+					[".zprofile"] = "zsh",
 				},
 				pattern = {
 					["%.env%..+"] = "dotenv",
