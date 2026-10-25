@@ -38,7 +38,7 @@ return {
 			"rcarriga/nvim-notify",
 		},
 		opts = {
-			messages = { enabled = true },
+			messages = { enabled = false },
 			notify = { enabled = false }, -- vim.notify sudah dihandle nvim-notify
 			lsp = {
 				progress = { enabled = false },

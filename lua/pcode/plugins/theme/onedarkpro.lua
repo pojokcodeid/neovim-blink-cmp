@@ -3,6 +3,10 @@ return {
 	priority = 1000,
 	config = function()
 		local is_transparent = false
+		local colorscheme_name = false
+		if vim.g.colors_name == "onedark_dark" then
+			colorscheme_name = true
+		end
 		require("onedarkpro").setup({
 			styles = {
 				types = "NONE",
@@ -20,8 +24,12 @@ return {
 				virtual_text = "NONE",
 				tags = "italic",
 			},
+			filetypes = {
+				go = true,
+				javascript = true,
+			},
 			colors = {
-				bg_statusline = "NONE",
+				bg_statusline = colorscheme_name and "#16191D" or "#282c34",
 				onedark = {
 					bg_statusline = "#282c34",
 					green = "#99c379",
@@ -100,6 +108,9 @@ return {
 				["@property.lua"] = { fg = "${red}", bg = "NONE" },
 				["@lsp.type.property.lua"] = { fg = "${cyan}", bg = "NONE" },
 				["@lsp.type.variable.lua"] = { fg = "${red}", bg = "NONE" },
+				["@tag.javascript"] = { fg = "${yellow}" },
+				["@tag.attribute.javascript"] = { fg = "${orange}" },
+				["@lsp.typemod.variable.readonly.javascript"] = { fg = "${yellow}" },
 				NvimTreeGitDirty = { fg = "${yellow}" },
 				Pmenu = { fg = "${fg}", bg = "${bg}" },
 				PmenuThumb = { bg = "${gray}" }, -- Popup menu: Thumb of the scrollbar.
