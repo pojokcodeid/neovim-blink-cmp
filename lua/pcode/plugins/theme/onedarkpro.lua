@@ -21,9 +21,9 @@ return {
 				tags = "italic",
 			},
 			colors = {
-				-- bg_statusline = "#282c34",
 				bg_statusline = "NONE",
 				onedark = {
+					bg_statusline = "#282c34",
 					green = "#99c379",
 					gray = "#8094b4",
 					red = "#e06c75",
@@ -35,7 +35,7 @@ return {
 					float_bg = "#282c34",
 				},
 				onedark_dark = {
-					bg_statusline = "#000",
+					bg_statusline = "#16191D",
 					green = "#99c379",
 					gray = "#8094b4",
 					red = "#e06c75",
