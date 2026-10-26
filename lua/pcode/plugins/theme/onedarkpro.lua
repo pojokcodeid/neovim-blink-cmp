@@ -29,7 +29,8 @@ return {
 				javascript = true,
 			},
 			colors = {
-				bg_statusline = colorscheme_name and "#16191D" or "#282c34",
+				-- bg_statusline = colorscheme_name and "#16191D" or "#282c34",
+				bg_statusline = "#16191D",
 				onedark = {
 					bg_statusline = "#282c34",
 					green = "#99c379",

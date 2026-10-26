@@ -50,6 +50,7 @@ pcode.extras = {
 	npmrunner = false,
 	nvimmenu = false,
 	nvimufo = true,
+	outline = true,
 	rainbowdelimiters = true,
 	refactoring = false,
 	rest = true,
@@ -92,7 +93,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  onedarkpro = "onedark_dark"
+	dracula = "dracula",
 }
 -- activate config transparent_bg
 pcode.transparent = true

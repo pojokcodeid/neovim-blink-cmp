@@ -206,6 +206,15 @@ return {
 				})
 				:find()
 		end
+
+		local builtin = require("telescope.builtin")
+		vim.api.nvim_create_user_command("FindFunction", function()
+			builtin.lsp_document_symbols(themes.get_dropdown({
+				symbols = { "function", "method" }, -- hanya function & method
+				previewer = false,
+				winblend = 10,
+			}))
+		end, { desc = "LSP: cari function (dropdown)" })
 	end,
 	keys = {
 		{ "<leader>s", "", desc = "Search", mode = "n" },
