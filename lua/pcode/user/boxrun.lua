@@ -1,7 +1,7 @@
 local M = {}
 
 -- daftar server tetap, tambahkan manual kalau nanti ada server lain
-local servers = { "sf7-dev" }
+local servers = { "sf7-dev", "oauth2-lucee-demo" }
 
 local actions = {
 	{ label = "Start", cmd = "start" },

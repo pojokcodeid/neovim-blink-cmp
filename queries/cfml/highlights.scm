@@ -361,3 +361,10 @@
 
 ; Lucee object selector, e.g. `new java:java.io.File(...)`
 (type_prefix) @keyword
+
+;; extends
+
+((tag_name) @tag.html
+  (#not-match? @tag.html "^[cC][fF]"))
+
+(doctype) @tag.html

@@ -6,3 +6,7 @@ require("pcode.user.ts_queries").setup()
 require("pcode.user.compare")
 require("pcode.user.bgrun").setup()
 require("pcode.user.cfml_rainbow").setup({ "cfml" })
+
+if vim.fn.has("mac") == 1 then
+	require("pcode.user.dotclean")
+end

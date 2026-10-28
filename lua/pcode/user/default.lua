@@ -53,6 +53,7 @@ pcode.extras = {
 	outline = true,
 	rainbowdelimiters = true,
 	refactoring = false,
+	rendermarkdown = true,
 	rest = true,
 	scrollview = false,
 	showkeys = false,
@@ -93,11 +94,11 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-	dracula = "dracula",
+  onedarkpro = "onedark_dark"
 }
 -- activate config transparent_bg
-pcode.transparent = true
+pcode.transparent = false
 pcode.localcode = false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true
-pcode.nvimtree_float = true
+pcode.nvimtree_float=true

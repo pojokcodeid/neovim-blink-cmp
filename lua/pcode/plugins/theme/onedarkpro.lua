@@ -110,6 +110,7 @@ return {
 				["@lsp.type.property.lua"] = { fg = "${cyan}", bg = "NONE" },
 				["@lsp.type.variable.lua"] = { fg = "${red}", bg = "NONE" },
 				["@tag.javascript"] = { fg = "${yellow}" },
+				["@property.cfscript"] = { fg = "${orange}" },
 				["@tag.attribute.javascript"] = { fg = "${orange}" },
 				["@lsp.typemod.variable.readonly.javascript"] = { fg = "${yellow}" },
 				NvimTreeGitDirty = { fg = "${yellow}" },
