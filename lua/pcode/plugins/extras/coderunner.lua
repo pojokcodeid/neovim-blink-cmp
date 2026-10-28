@@ -55,6 +55,7 @@ return {
 	},
 	config = function(_, opts)
 		require("code_runner").setup(opts)
+		require("code_runner.hooks.notify").info = function() end
 	end,
 	keys = {
 		{ "<leader>r", "", desc = "  Run", mode = "n" },
