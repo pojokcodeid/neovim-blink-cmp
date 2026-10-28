@@ -24,6 +24,9 @@ return {
 		},
 		config = function(_, opts)
 			local notify = require("notify")
+			if pcode.transparent then
+				opts.background_colour = "#000000"
+			end
 			notify.setup(opts)
 			vim.notify = notify.notify
 		end,

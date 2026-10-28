@@ -50,7 +50,7 @@ pcode.extras = {
 	npmrunner = false,
 	nvimmenu = false,
 	nvimufo = true,
-	outline = true,
+	outline = false,
 	rainbowdelimiters = true,
 	refactoring = false,
 	rendermarkdown = true,
@@ -97,7 +97,7 @@ pcode.themes = {
   onedarkpro = "onedark_dark"
 }
 -- activate config transparent_bg
-pcode.transparent = false
+pcode.transparent=false
 pcode.localcode = false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true

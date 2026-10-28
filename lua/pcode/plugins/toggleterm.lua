@@ -53,5 +53,13 @@ return {
 		{ "<leader>th", "<cmd>ToggleTerm size=10 direction=horizontal<cr>", desc = "Horizontal", mode = "n" },
 		{ "<leader>tv", "<cmd>ToggleTerm size=80 direction=vertical<cr>", desc = "Vertical", mode = "n" },
 		{ "<leader>ts", "<cmd>ToggleTerm direction=tab<cr>", desc = "New Tab", mode = "n" },
+		{
+			"<leader>td",
+			function()
+				LAZYDOCKER_TOGGLE()
+			end,
+			desc = "Lazy Docker",
+			mode = "n",
+		},
 	},
 }

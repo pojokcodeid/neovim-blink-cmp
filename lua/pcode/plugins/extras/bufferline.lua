@@ -84,16 +84,7 @@ local function close_buffer(bufnr)
 	end
 end
 
-local function close_current()
-	local buf = vim.api.nvim_get_current_buf()
-	if vim.bo[buf].buftype == "terminal" then
-		close_buffer(buf)
-	else
-		require("pcode.user.buffer").bufremove()
-	end
-end
-
---- focus setelah embuka error list clik
+--- focus setelah membuka error list click
 local function focus_tab(buffer, button)
 	if button ~= "l" then
 		return
@@ -118,10 +109,46 @@ local function focus_tab(buffer, button)
 		end
 	end)
 end
+
+-- ============================================================
+-- Transparent mode
+-- ============================================================
+
+-- Pastikan highlight tab punya warna. Kalau tema tidak mendefinisikannya
+-- (atau tidak punya bg), pakai warna fallback di bawah.
+-- Tab sengaja diberi bg solid supaya cap bulat kiri/kanan tetap terlihat,
+-- sedangkan area di sekitarnya dibuat transparan.
+local tab_defaults = {
+	NormalTab = { fg = "#7a8290", bg = "#1c2128" }, -- tab tidak aktif
+	ColorColumnTab = { fg = "#e6edf3", bg = "#2d333b" }, -- tab aktif
+}
+
+local function set_tab_hl()
+	-- Area kosong di belakang tab: transparan
+	vim.api.nvim_set_hl(0, "CokelineFill", { bg = "NONE" })
+	vim.api.nvim_set_hl(0, "TabLineFill", { bg = "NONE" })
+
+	for name, fallback in pairs(tab_defaults) do
+		local ok, hl = pcall(vim.api.nvim_get_hl, 0, { name = name, link = false })
+		if not ok or not hl or not hl.bg then
+			vim.api.nvim_set_hl(0, name, fallback)
+		end
+	end
+end
+
 return {
 	"willothy/nvim-cokeline",
 	branch = "main",
 	event = { "BufRead", "BufNewFile" },
+	config = function(_, opts)
+		set_tab_hl()
+		-- Terapkan ulang setiap kali colorscheme berganti
+		vim.api.nvim_create_autocmd("ColorScheme", {
+			group = vim.api.nvim_create_augroup("CokelineTransparent", { clear = true }),
+			callback = set_tab_hl,
+		})
+		require("cokeline").setup(opts)
+	end,
 	opts = function()
 		local truncate_text = function(text, max_length)
 			if #text > max_length then
@@ -136,13 +163,36 @@ return {
 		local yellow = vim.g.terminal_color_3
 		local hlgroups = require("cokeline.hlgroups")
 		local hl_attr = hlgroups.get_hl_attr
+
+		-- bg transparan: kalau Normal tidak punya bg (transparent mode), pakai NONE
+		local function transparent_bg()
+			return hl_attr("Normal", "bg") or "NONE"
+		end
+
+		local function tab_bg(buffer)
+			return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
+		end
+
+		local function tab_fg(buffer)
+			return buffer.is_focused and hl_attr("ColorColumnTab", "fg") or hl_attr("NormalTab", "fg")
+		end
+
+		local function click(_, _, button, _, buffer)
+			focus_tab(buffer, button)
+		end
+
 		return {
+			fill_hl = "CokelineFill",
+			default_hl = {
+				fg = tab_fg,
+				bg = "NONE",
+			},
 			sidebar = {
 				filetype = { "NvimTree", "neo-tree" },
 				components = {
 					{
 						text = " ",
-						bg = hl_attr("Normal", "bg"),
+						bg = transparent_bg,
 					},
 					{
 						text = function(buf)
@@ -153,9 +203,7 @@ return {
 							end
 						end,
 						fg = yellow,
-						bg = function()
-							return hl_attr("Normal", "bg")
-						end,
+						bg = transparent_bg,
 						bold = true,
 					},
 				},
@@ -163,18 +211,12 @@ return {
 			components = {
 				{
 					text = " ",
-					bg = hl_attr("Normal", "bg"),
+					bg = transparent_bg,
 				},
 				{
-					text = "",
-					fg = function(buffer)
-						if buffer.is_focused then
-							return hl_attr("ColorColumnTab", "bg")
-						else
-							return hl_attr("NormalTab", "bg")
-						end
-					end,
-					bg = hl_attr("Normal", "bg"),
+					text = "\u{e0b6}", -- cap kiri (setengah lingkaran)
+					fg = tab_bg,
+					bg = transparent_bg,
 				},
 				{
 					text = function(buffer)
@@ -183,21 +225,13 @@ return {
 					fg = function(buffer)
 						return buffer.devicon.color
 					end,
-					on_click = function(_, _, button, _, buffer)
-						focus_tab(buffer, button)
-					end,
-					bg = function(buffer)
-						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
-					end,
+					on_click = click,
+					bg = tab_bg,
 				},
 				{
 					text = " ",
-					on_click = function(_, _, button, _, buffer)
-						focus_tab(buffer, button)
-					end,
-					bg = function(buffer)
-						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
-					end,
+					on_click = click,
+					bg = tab_bg,
 				},
 				{
 					text = function(buffer)
@@ -206,19 +240,12 @@ return {
 					style = function(buffer)
 						return buffer.is_focused and "bold" or nil
 					end,
-					on_click = function(_, _, button, _, buffer)
-						focus_tab(buffer, button)
-					end,
-					fg = function(buffer)
-						return buffer.is_focused and hl_attr("ColorColumnTab", "fg") or hl_attr("NormalTab", "fg")
-					end,
-					bg = function(buffer)
-						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
-					end,
+					on_click = click,
+					fg = tab_fg,
+					bg = tab_bg,
 				},
 				{
-					text = "󰅖",
-					-- BARU: ganti delete_buffer_on_left_click dengan on_click kustom
+					text = "\u{f0156}", -- ikon close
 					on_click = function(_, _, button, _, buffer)
 						if button ~= "l" then
 							return
@@ -228,23 +255,13 @@ return {
 							close_buffer(bufnr)
 						end)
 					end,
-					fg = function(buffer)
-						return buffer.is_focused and hl_attr("ColorColumnTab", "fg") or hl_attr("NormalTab", "fg")
-					end,
-					bg = function(buffer)
-						return buffer.is_focused and hl_attr("ColorColumnTab", "bg") or hl_attr("NormalTab", "bg")
-					end,
+					fg = tab_fg,
+					bg = tab_bg,
 				},
 				{
-					text = "",
-					fg = function(buffer)
-						if buffer.is_focused then
-							return hl_attr("ColorColumnTab", "bg")
-						else
-							return hl_attr("NormalTab", "bg")
-						end
-					end,
-					bg = hl_attr("Normal", "bg"),
+					text = "\u{e0b4}", -- cap kanan (setengah lingkaran)
+					fg = tab_bg,
+					bg = transparent_bg,
 				},
 			},
 		}

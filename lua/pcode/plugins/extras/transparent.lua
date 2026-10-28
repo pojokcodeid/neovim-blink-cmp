@@ -62,10 +62,10 @@ return {
 			vim.api.nvim_set_hl(0, "LazyH1", { bold = true, bg = "NONE", fg = "#ABB2BF" })
 		end,
 	},
-	{
+	--[[ 	{
 		"rcarriga/nvim-notify",
 		opts = function(_, opts)
 			opts.background_colour = "#000000"
 		end,
-	},
+	}, ]]
 }

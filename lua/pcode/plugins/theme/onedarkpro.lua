@@ -2,7 +2,7 @@ return {
 	"olimorris/onedarkpro.nvim",
 	priority = 1000,
 	config = function()
-		local is_transparent = false
+		local is_transparent = pcode.transparent or false
 		local colorscheme_name = false
 		if vim.g.colors_name == "onedark_dark" then
 			colorscheme_name = true
