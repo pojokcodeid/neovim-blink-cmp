@@ -225,6 +225,7 @@ return {
 					jsx = "javascriptreact",
 					zsh = "zsh",
 					command = "zsh",
+					js = "javascriptreact",
 				},
 				filename = {
 					[".env"] = "dotenv",

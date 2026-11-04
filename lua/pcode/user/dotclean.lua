@@ -36,13 +36,13 @@ vim.api.nvim_create_autocmd("BufDelete", {
 vim.api.nvim_create_autocmd("VimEnter", { group = group, callback = dot_clean })
 
 -- Saat Neovim ditutup (pakai jobwait agar selesai sebelum keluar)
-vim.api.nvim_create_autocmd("VimLeavePre", {
+--[[ vim.api.nvim_create_autocmd("VimLeavePre", {
 	group = group,
 	callback = function()
 		local id = vim.fn.jobstart({ "dot_clean", "-m", vim.fn.getcwd() })
 		vim.fn.jobwait({ id }, 3000)
 	end,
-})
+}) ]]
 
 -- Saat pindah direktori (:cd)
 vim.api.nvim_create_autocmd("DirChanged", { group = group, callback = dot_clean })
