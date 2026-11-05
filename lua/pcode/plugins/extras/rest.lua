@@ -190,9 +190,9 @@ return {
 		})
 	end,
 	keys = {
-		{ "<leader>r", "", desc = "Http Request" },
-		{ "<leader>rr", "<cmd>Rest run<cr>", desc = "Run HTTP request" },
-		{ "<leader>rl", "<cmd>Rest run last<cr>", desc = "Re-run last request" },
-		{ "<leader>re", "<cmd>Rest env select<cr>", desc = "Select .env file" },
+		{ "<leader>R", "", desc = "Http Request" },
+		{ "<leader>Rr", "<cmd>Rest run<cr>", desc = "Run HTTP request" },
+		{ "<leader>Rl", "<cmd>Rest run last<cr>", desc = "Re-run last request" },
+		{ "<leader>Re", "<cmd>Rest env select<cr>", desc = "Select .env file" },
 	},
 }
