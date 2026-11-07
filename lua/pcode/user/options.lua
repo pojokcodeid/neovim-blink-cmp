@@ -44,7 +44,7 @@ for k, v in pairs(options) do
 end
 
 vim.api.nvim_create_autocmd("FileType", {
-	pattern = { "cfc", "cfm" },
+	pattern = { "cfc", "cfm", "javascriptreact" },
 	callback = function()
 		vim.opt.cindent = true
 		vim.opt.expandtab = true
