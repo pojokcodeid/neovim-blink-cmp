@@ -1,7 +1,13 @@
+-- ============================================================================
+-- Terminal Helpers (Lazygit & Lazydocker)
+-- ============================================================================
+local M = {}
+
+--- Toggle Lazygit floating terminal
 _G.LAZYGIT_TOGGLE = function()
 	local ok = pcall(require, "toggleterm")
 	if not ok then
-		require("notify")("toggleterm not found!", "error")
+		vim.notify("toggleterm not found!", vim.log.levels.ERROR)
 		return
 	end
 	local Terminal = require("toggleterm.terminal").Terminal
@@ -11,6 +17,7 @@ end
 
 local lazydocker_term = nil
 
+--- Toggle Lazydocker floating terminal (dengan support socket Podman)
 _G.LAZYDOCKER_TOGGLE = function()
 	local ok, terminal = pcall(require, "toggleterm.terminal")
 	if not ok then
@@ -19,20 +26,20 @@ _G.LAZYDOCKER_TOGGLE = function()
 	end
 
 	if not lazydocker_term then
-		-- Ambil path socket Podman machine
+		-- Ambil path socket Podman machine jika ada
 		local out = vim.fn.systemlist("podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'")
-		if vim.v.shell_error ~= 0 or not out[1] or out[1] == "" then
-			vim.notify("Podman machine tidak jalan / socket tidak ditemukan", vim.log.levels.ERROR)
-			return
+		local env = nil
+		if vim.v.shell_error == 0 and out[1] and out[1] ~= "" then
+			env = { DOCKER_HOST = "unix://" .. out[1] }
 		end
 
 		lazydocker_term = terminal.Terminal:new({
 			cmd = "lazydocker",
 			hidden = true,
 			direction = "float",
-			env = { DOCKER_HOST = "unix://" .. out[1] },
+			env = env,
 			on_exit = function()
-				lazydocker_term = nil -- buat ulang saat dibuka lagi (path socket bisa berubah)
+				lazydocker_term = nil -- buat ulang saat dibuka lagi jika path socket berubah
 			end,
 		})
 	end
@@ -40,14 +47,7 @@ _G.LAZYDOCKER_TOGGLE = function()
 	lazydocker_term:toggle()
 end
 
-local function safeRequire(module)
-	local ok, result = pcall(require, module)
-	if ok then
-		return result
-	end
-end
+M.lazygit_toggle = _G.LAZYGIT_TOGGLE
+M.lazydocker_toggle = _G.LAZYDOCKER_TOGGLE
 
-safeRequire("pcode.user.options")
-safeRequire("pcode.user.autocmd")
-safeRequire("pcode.user.keymaps")
-return {}
+return M

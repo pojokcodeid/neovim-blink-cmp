@@ -306,9 +306,6 @@ do
 			"reportLevel=ERROR",
 		},
 		-- Jalankan dari folder tempat file berada
-		cwd = function()
-			return fn.fnamemodify(api.nvim_buf_get_name(0), ":h")
-		end,
 		stdin = false,
 		stream = "both", -- CommandBox kadang mengirim log ke stderr
 		ignore_exitcode = true,
@@ -361,8 +358,10 @@ do
 
 	api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "InsertLeave" }, {
 		group = api.nvim_create_augroup("CfmlLint", { clear = true }),
-		callback = function()
-			lint.try_lint()
+		callback = function(args)
+			local bufname = api.nvim_buf_get_name(args.buf)
+			local dir = bufname ~= "" and fn.fnamemodify(bufname, ":h") or nil
+			lint.try_lint(nil, { cwd = dir })
 		end,
 	})
 end

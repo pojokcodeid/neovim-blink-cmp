@@ -1,6 +1,7 @@
 -- ============================================================================
--- Bootstrap lazy.nvim
+-- Lazy.nvim Plugin Manager Bootstrap & Setup
 -- ============================================================================
+
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
@@ -26,54 +27,47 @@ end
 
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
--- ============================================================================
--- Pengaturan dasar (harus sebelum lazy.nvim di-load agar mapping benar)
--- ============================================================================
-vim.opt.number = false
-vim.g.mapleader = " "
-vim.g.maplocalleader = "\\"
-
 local icons = require("pcode.user.icons").ui
 
 -- ============================================================================
--- Daftar import plugin
+-- Plugin Spec Construction
 -- ============================================================================
-local spec = { { import = "pcode.plugins" } }
+local spec = {
+	{ import = "pcode.plugins" }, -- Plugin utama di lua/pcode/plugins/
+}
 
---- Tambahkan import "<prefix>.<key>" ke spec.
---- Jika `only_enabled` true, hanya key dengan nilai truthy yang di-import.
+--- Tambahkan import "<prefix>.<key>" ke spec jika diaktifkan di konfigurasi.
+---@param prefix string
+---@param tbl table
+---@param only_enabled boolean?
 local function add_imports(prefix, tbl, only_enabled)
-	for key, value in pairs(tbl) do
+	for key, value in pairs(tbl or {}) do
 		if not only_enabled or value then
 			spec[#spec + 1] = { import = prefix .. "." .. key }
 		end
 	end
 end
 
-add_imports("pcode.plugins.theme", pcode.themes or {}) -- theme (semua key)
-add_imports("pcode.plugins.extras", pcode.extras or {}, true) -- extras aktif
-add_imports("pcode.plugins.lang", pcode.lang or {}, true) -- bahasa aktif
+-- Import tema, fitur extras aktif, dan modul bahasa aktif
+add_imports("pcode.plugins.theme", pcode.themes or {})
+add_imports("pcode.plugins.extras", pcode.extras or {}, true)
+add_imports("pcode.plugins.lang", pcode.lang or {}, true)
 
---[[ Transparent config
-if pcode.transparent then
-	spec[#spec + 1] = { import = "pcode.plugins.extras.transparent" }
-end ]]
-
--- Override path (selalu terakhir)
+-- Plugin kustom user (selalu paling akhir untuk prioritas override)
 spec[#spec + 1] = { import = "pcode.user.custom" }
 
 -- ============================================================================
--- Setup lazy.nvim
+-- Setup Lazy.nvim
 -- ============================================================================
 require("lazy").setup({
 	spec = spec,
 	ui = {
 		backdrop = 100,
 		border = "rounded",
-		browser = "chrome", -- Chrome sebagai browser default
+		browser = "chrome",
 		throttle = 40,
 		custom_keys = {
-			["<localleader>l"] = false, -- Nonaktifkan localleader l
+			["<localleader>l"] = false,
 		},
 		icons = {
 			ft = icons.ft,
@@ -82,8 +76,13 @@ require("lazy").setup({
 			not_loaded = icons.not_loaded,
 		},
 	},
-	change_detection = { enabled = false, notify = false },
-	checker = { enabled = true }, -- Cek update plugin otomatis
+	change_detection = {
+		enabled = false,
+		notify = false,
+	},
+	checker = {
+		enabled = true, -- Cek update plugin secara berkala di background
+	},
 	performance = {
 		rtp = {
 			disabled_plugins = {
