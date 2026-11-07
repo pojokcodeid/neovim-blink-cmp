@@ -1,11 +1,11 @@
 -- ============================================================================
--- Autocmds & user commands
+-- Autocommands & Custom User Commands
 -- ============================================================================
 local api = vim.api
 local fn = vim.fn
 local levels = vim.log.levels
 
---- Membuat augroup (selalu di-clear agar tidak menumpuk saat config di-reload)
+--- Helper membuat augroup baru yang di-clear otomatis
 local function augroup(name)
 	return api.nvim_create_augroup(name, { clear = true })
 end
@@ -13,7 +13,7 @@ end
 local autocmd = api.nvim_create_autocmd
 
 -- ============================================================================
--- Pengaturan umum
+-- 1. General Editor Autocommands
 -- ============================================================================
 local general = augroup("_general_settings")
 
@@ -26,7 +26,7 @@ autocmd("FileType", {
 	end,
 })
 
--- Wrap & spell check untuk commit git dan markdown
+-- Aktifkan line wrap & spell checking untuk commit git dan markdown
 autocmd("FileType", {
 	group = augroup("_wrap_spell"),
 	pattern = { "gitcommit", "markdown" },
@@ -36,13 +36,13 @@ autocmd("FileType", {
 	end,
 })
 
--- Samakan ukuran window saat Vim di-resize
+-- Samakan proporsi ukuran split windows saat Neovim di-resize
 autocmd("VimResized", {
 	group = augroup("_auto_resize"),
 	command = "tabdo wincmd =",
 })
 
--- Tab size 4 untuk JavaScript / TypeScript
+-- Tab size 4 untuk JavaScript, TypeScript, dan Go
 autocmd("FileType", {
 	group = augroup("_tabsize"),
 	pattern = { "javascript", "typescript", "go" },
@@ -52,7 +52,7 @@ autocmd("FileType", {
 	end,
 })
 
--- Highlight teks saat yank
+-- Highlight teks saat di-yank (copy)
 autocmd("TextYankPost", {
 	group = augroup("YankHighlight"),
 	callback = function()
@@ -60,26 +60,26 @@ autocmd("TextYankPost", {
 	end,
 })
 
--- Buat direktori yang belum ada sebelum menyimpan file
+-- Buat direktori induk otomatis jika belum ada sebelum file disimpan
 autocmd("BufWritePre", {
 	group = augroup("BWCCreateDir"),
 	callback = function(args)
 		if vim.bo[args.buf].buftype ~= "" or args.match:match("^%w+://") then
 			return
 		end
-		-- mkdir "p" tidak error jika direktori sudah ada
 		fn.mkdir(fn.fnamemodify(args.match, ":h"), "p")
 	end,
 })
 
--- Nonaktifkan CTRL+SHIFT+Drag Mouse
+-- Nonaktifkan CTRL+SHIFT+Drag Mouse yang tidak disengaja
 for _, key in ipairs({ "<C-S-LeftMouse>", "<C-S-LeftDrag>", "<C-S-LeftRelease>" }) do
 	vim.keymap.set("", key, "<Nop>", { silent = true })
 end
 
 -- ============================================================================
--- Alpha (dashboard): sembunyikan tabline selama dashboard aktif
+-- 2. Alpha Dashboard
 -- ============================================================================
+-- Sembunyikan tabline saat Alpha dashboard aktif, kembalikan setelah ditutup
 autocmd("User", {
 	group = augroup("_alpha"),
 	pattern = "AlphaReady",
@@ -96,7 +96,7 @@ autocmd("User", {
 })
 
 -- ============================================================================
--- Terminal
+-- 3. Terminal Buffer & Workflow
 -- ============================================================================
 local term_group = augroup("neovim_terminal")
 
@@ -110,7 +110,7 @@ end
 autocmd("TermOpen", { group = term_group, callback = setup_terminal_buffer })
 autocmd("FileType", { group = term_group, pattern = "checkhealth", callback = setup_terminal_buffer })
 
--- Refresh nvim-tree setelah lazygit ditutup
+-- Refresh nvim-tree otomatis setelah Lazygit ditutup
 autocmd("TermClose", {
 	group = augroup("_lazygit_refresh"),
 	pattern = "*lazygit*",
@@ -123,21 +123,21 @@ autocmd("TermClose", {
 })
 
 -- ============================================================================
--- Cursor
+-- 4. Cursor Management
 -- ============================================================================
 vim.opt.guicursor = {
-	"n-v:block", -- Normal, Visual: block
-	"i-ci-ve-c:ver25", -- Insert, Cmdline-insert, Visual-exclude, Command: bar vertikal
-	"r-cr:hor20", -- Replace: bar horizontal
-	"o:hor50", -- Operator-pending: bar horizontal
-	"a:blinkwait700-blinkoff400-blinkon250", -- Blinking semua mode
-	"sm:block-blinkwait175-blinkoff150-blinkon175", -- Showmatch
+	"n-v:block",
+	"i-ci-ve-c:ver25",
+	"r-cr:hor20",
+	"o:hor50",
+	"a:blinkwait700-blinkoff400-blinkon250",
+	"sm:block-blinkwait175-blinkoff150-blinkon175",
 }
 
--- Kembalikan cursor menjadi beam saat keluar dari Neovim
+-- Kembalikan kursor ke bentuk beam saat keluar dari Neovim
 autocmd("ExitPre", {
 	group = augroup("Exit"),
-	desc = "Set cursor back to beam when leaving Neovim.",
+	desc = "Kembalikan bentuk cursor ke beam saat keluar dari Neovim.",
 	callback = function()
 		vim.o.guicursor = "n-v-c:block,i-ci-ve:ver25,r-cr:hor20,o:hor50,"
 			.. "a:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor,"
@@ -146,14 +146,14 @@ autocmd("ExitPre", {
 })
 
 -- ============================================================================
--- Highlight baris error
+-- 5. Diagnostic Error Line Highlighting
 -- ============================================================================
 local function hex_to_rgb(hex)
 	hex = hex:gsub("#", "")
 	return tonumber(hex:sub(1, 2), 16), tonumber(hex:sub(3, 4), 16), tonumber(hex:sub(5, 6), 16)
 end
 
---- Campur dua warna hex. `alpha` bisa angka 0-1 atau string hex "00"-"ff".
+--- Campur dua warna hex dengan alpha
 local function blend(foreground, background, alpha)
 	alpha = type(alpha) == "string" and (tonumber(alpha, 16) / 255) or alpha
 	local fr, fg, fb = hex_to_rgb(foreground)
@@ -166,7 +166,7 @@ local function blend(foreground, background, alpha)
 	return string.format("#%02x%02x%02x", mix(fr, br), mix(fg, bg), mix(fb, bb))
 end
 
-local ERROR_BG, ERROR_FG, ERROR_ALPHA = "#282a36", "#ff5555", 0.05 -- Dracula
+local ERROR_BG, ERROR_FG, ERROR_ALPHA = "#282a36", "#ff5555", 0.05
 local error_ns = api.nvim_create_namespace("error_line_hl")
 
 local function set_error_hl()
@@ -197,7 +197,7 @@ autocmd("DiagnosticChanged", {
 	end,
 })
 
--- Quickfix dari popup menu tidak selebar window
+-- Quickfix dari popup menu
 autocmd("VimEnter", {
 	group = augroup("_popup_diagnostics"),
 	callback = function()
@@ -209,14 +209,14 @@ autocmd("VimEnter", {
 })
 
 -- ============================================================================
--- User command: Treesitter
+-- 6. User Commands: Treesitter
 -- ============================================================================
 api.nvim_create_user_command("TSIsInstalled", function()
 	local parsers = require("nvim-treesitter.info").installed_parsers()
 	table.sort(parsers)
 
 	vim.ui.select(parsers, {
-		prompt = "Uninstall Treesitter",
+		prompt = "Uninstall Treesitter parser:",
 		format_item = function(parser)
 			return "[✓] " .. parser
 		end,
@@ -225,16 +225,15 @@ api.nvim_create_user_command("TSIsInstalled", function()
 			vim.cmd("TSUninstall " .. choice)
 		end
 	end)
-end, {})
+end, { desc = "Pilih parser Treesitter yang terinstal untuk di-uninstall" })
 
 -- ============================================================================
--- User command: PCode (add/remove fitur), Theme, Config
+-- 7. User Commands: PCode Config, Plugins, Themes
 -- ============================================================================
 local editor = require("pcode.core.default_editor")
 local registry = require("pcode.core.theme_registry")
 
---- Kumpulkan "<label> => <key>" dari `tbl` yang statusnya sama dengan `enabled`.
---- `strict` = hanya nilai boolean murni yang dihitung (abaikan sub-table).
+--- Kumpulkan "<label> => <key>" dari tbl
 local function collect(tbl, label, enabled, strict)
 	local out = {}
 	for key, value in pairs(tbl) do
@@ -252,7 +251,6 @@ local function collect(tbl, label, enabled, strict)
 	return out
 end
 
---- Daftar kandidat completion; dihitung saat dibutuhkan (bukan saat startup).
 local function feature_candidates(enabled)
 	local conf = _G.pcode or {}
 	local items = collect(conf.extras or {}, "Extras", enabled)
@@ -261,7 +259,6 @@ local function feature_candidates(enabled)
 	return items
 end
 
---- Hapus prefix "Extras =>", "Lang =>", "Conf =>" dari argumen.
 local function clean_feature(arg)
 	return vim.trim((arg:gsub("^%a+%s*=>%s*", "")))
 end
@@ -313,8 +310,9 @@ api.nvim_create_user_command("PCodeAdd", function(opts)
 	set_feature(clean_feature(opts.args), true)
 end, {
 	nargs = 1,
+	desc = "Aktifkan plugin/bahasa/fitur di default.lua",
 	complete = function()
-		return feature_candidates(false) -- yang belum aktif
+		return feature_candidates(false)
 	end,
 })
 
@@ -322,17 +320,16 @@ api.nvim_create_user_command("PCodeRemove", function(opts)
 	set_feature(clean_feature(opts.args), false)
 end, {
 	nargs = 1,
+	desc = "Nonaktifkan plugin/bahasa/fitur di default.lua",
 	complete = function()
-		return feature_candidates(true) -- yang sudah aktif
+		return feature_candidates(true)
 	end,
 })
 
--- :Theme <theme> <variant>
 local function theme_complete(_, cmdline)
 	local args = vim.split(cmdline, "%s+")
 	local result = {}
 
-	-- :Theme <key> <prefix>
 	if #args >= 3 then
 		local key, prefix = args[2], args[3]:lower()
 		for _, variant in ipairs(registry.themes[key] or {}) do
@@ -343,7 +340,6 @@ local function theme_complete(_, cmdline)
 		return result
 	end
 
-	-- :Theme <TAB>
 	local keys = vim.tbl_keys(registry.themes)
 	table.sort(keys)
 	for _, key in ipairs(keys) do
@@ -357,7 +353,7 @@ end
 api.nvim_create_user_command("Theme", function(opts)
 	local args = vim.split(opts.args, "%s+", { trimempty = true })
 	if #args < 2 then
-		vim.notify("Use: :Theme <theme> <variant>", levels.WARN)
+		vim.notify("Gunakan: :Theme <theme> <variant>", levels.WARN)
 		return
 	end
 
@@ -367,23 +363,26 @@ api.nvim_create_user_command("Theme", function(opts)
 	if editor.replace_theme(key, value) then
 		vim.notify(("Theme set: %s = %s"):format(key, value), levels.INFO, { title = "pcode.themes" })
 	else
-		vim.notify("pcode.themes not found", levels.ERROR)
+		vim.notify("pcode.themes tidak ditemukan", levels.ERROR)
 	end
-end, { nargs = "+", complete = theme_complete })
+end, {
+	nargs = "+",
+	desc = "Ganti dan simpan tema aktif ke default.lua",
+	complete = theme_complete,
+})
 
 api.nvim_create_user_command("PCodeConfig", function()
 	require("pcode.ui.pcode_dashboard").open()
-end, {})
+end, { desc = "Buka dashboard konfigurasi PCode" })
 
 -- ============================================================================
--- LSP helpers
+-- 8. User Commands: LSP Inspection & Status
 -- ============================================================================
 local function get_clients(bufnr)
 	local get = vim.lsp.get_clients or vim.lsp.get_active_clients
 	return get({ bufnr = bufnr })
 end
 
---- Ambil nama fitur dari `list` ({ provider, label }) yang didukung server.
 local function supported_features(caps, list)
 	local out = {}
 	for _, item in ipairs(list) do
@@ -443,7 +442,6 @@ local ALL_CAPABILITIES = {
 	{ "Selection Range", "selectionRangeProvider" },
 }
 
--- :LspStatus
 api.nvim_create_user_command("LspStatus", function()
 	local bufnr = api.nvim_get_current_buf()
 	local clients = get_clients(bufnr)
@@ -463,9 +461,8 @@ api.nvim_create_user_command("LspStatus", function()
 		print("  Features: " .. table.concat(supported_features(client.server_capabilities, STATUS_FEATURES), ", "))
 		print("")
 	end
-end, { desc = "Show detailed LSP status" })
+end, { desc = "Tampilkan status detail LSP" })
 
--- :LspCapabilities
 api.nvim_create_user_command("LspCapabilities", function()
 	local clients = get_clients(api.nvim_get_current_buf())
 
@@ -481,9 +478,8 @@ api.nvim_create_user_command("LspCapabilities", function()
 		end
 		print("")
 	end
-end, { desc = "Show LSP capabilities" })
+end, { desc = "Tampilkan daftar kapabilitas server LSP" })
 
--- :LspDiagnostics
 api.nvim_create_user_command("LspDiagnostics", function()
 	local counts, total = diagnostic_counts(api.nvim_get_current_buf())
 
@@ -493,9 +489,8 @@ api.nvim_create_user_command("LspDiagnostics", function()
 	print("  Info: " .. counts.INFO)
 	print("  Hints: " .. counts.HINT)
 	print("  Total: " .. total)
-end, { desc = "Show LSP diagnostics count" })
+end, { desc = "Tampilkan ringkasan diagnostik LSP" })
 
--- :LspInfo
 api.nvim_create_user_command("LspInfo", function()
 	local bufnr = api.nvim_get_current_buf()
 	local clients = get_clients(bufnr)
@@ -513,11 +508,11 @@ api.nvim_create_user_command("LspInfo", function()
 	if #clients == 0 then
 		print("󰅚 No LSP clients attached to buffer " .. bufnr)
 		print("")
-		print("Possible reasons:")
-		print("  • No language server installed for " .. vim.bo.filetype)
-		print("  • Language server not configured")
-		print("  • Not in a project root directory")
-		print("  • File type not recognized")
+		print("Kemungkinan penyebab:")
+		print("  • Belum ada language server terinstal untuk " .. vim.bo.filetype)
+		print("  • Language server belum dikonfigurasi")
+		print("  • Bukan di dalam direktori root project")
+		print("  • Filetype belum dikenali")
 		return
 	end
 
@@ -561,12 +556,12 @@ api.nvim_create_user_command("LspInfo", function()
 	end
 
 	print("")
-	print("Use :LspLog to view detailed logs")
-	print("Use :LspCapabilities for full capability list")
-end, { desc = "Show comprehensive LSP information" })
+	print("Gunakan :LspLog untuk melihat log detail")
+	print("Gunakan :LspCapabilities untuk daftar lengkap kapabilitas")
+end, { desc = "Tampilkan informasi komprehensif LSP" })
 
 -- ============================================================================
--- CFLint
+-- 9. User Commands: CFLint
 -- ============================================================================
 local ANSI_PATTERN = "\27%[[%d;]*m"
 local CFLINT_LINE = "^%s*(%u+):%s*([%u_]+),%s*(.-)%s*%[(%d+),(%d+)%]%s*$"
@@ -594,7 +589,7 @@ end
 local function cflint_check()
 	local file = api.nvim_buf_get_name(0)
 	if file == "" then
-		vim.notify("Buffer belum punya file yang tersimpan.", levels.WARN)
+		vim.notify("Buffer belum memiliki file yang tersimpan.", levels.WARN)
 		return
 	end
 	if fn.executable("box") == 0 then
@@ -631,7 +626,7 @@ local function cflint_check()
 	})
 
 	if job_id <= 0 then
-		vim.notify("Gagal menjalankan job cflint! job_id=" .. job_id, levels.ERROR)
+		vim.notify("Gagal menjalankan job CFLint! job_id=" .. job_id, levels.ERROR)
 		return
 	end
 
@@ -639,28 +634,3 @@ local function cflint_check()
 end
 
 api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan box cflint untuk file aktif" })
-
---[[ Auto-run CFLint saat save (debounce 500ms agar save beruntun tidak numpuk job)
-
-local cflint_timer = nil
-
-autocmd("BufWritePost", {
-	group = augroup("_cflint_autorun"),
-	pattern = { "*.cfc", "*.cfm", "*.cfml", "*.cfs" },
-	desc = "Auto-run CFLint on save (debounced)",
-	callback = function()
-		if cflint_timer then
-			cflint_timer:stop()
-			cflint_timer:close()
-		end
-		cflint_timer = (vim.uv or vim.loop).new_timer()
-		cflint_timer:start(500, 0, vim.schedule_wrap(function()
-			cflint_check()
-			if cflint_timer then
-				cflint_timer:close()
-				cflint_timer = nil
-			end
-		end))
-	end,
-})
-]]
