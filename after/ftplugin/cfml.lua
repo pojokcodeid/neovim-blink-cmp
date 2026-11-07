@@ -161,7 +161,10 @@ do
 end
 
 -- ---------------------------------------------------------------------------
--- CFLint via nvim-lint (CommandBox: `box cflint`)
+-- CFLint via nvim-lint
+--
+-- Prioritas: Menggunakan file CFLint JAR langsung untuk performa instan tanpa
+-- overhead start CommandBox. Jika JAR tidak ditemukan, fallback ke `box cflint`.
 --
 -- Cara mengabaikan rule:
 --   1. // CFLINT-DISABLE              -> abaikan per baris (di atas / di samping)
@@ -177,42 +180,19 @@ end
 do
 	local lint = require("lint")
 
+	-- Cari file JAR CFLint CommandBox jika ada
+	local jar_path =
+		vim.fn.expand("~/.CommandBox/cfml/modules/commandbox-cflint/lib/CFLint-1.5.0-all/CFLint-1.5.0-all.jar")
+	if vim.fn.filereadable(jar_path) ~= 1 then
+		local found = vim.fn.glob("~/.CommandBox/cfml/modules/commandbox-cflint/lib/**/CFLint*.jar", false, true)
+		if #found > 0 and vim.fn.filereadable(found[1]) == 1 then
+			jar_path = found[1]
+		end
+	end
+	local use_jar = vim.fn.filereadable(jar_path) == 1
+
 	local ANSI_PATTERN = "\27%[[%d;]*m"
 	local LINT_LINE = "^%s*(%u+):%s*([%u_]+),%s*(.-)%s*%[(%d+),(%d+)%]%s*$"
-
-	local IGNORE_RULE_PATTERNS = {
-		"@cflint%-ignore%s+([%w_]+)",
-		"@cflint%-disable%s+([%w_]+)",
-		"cflint%-ignore%s+([%w_]+)",
-	}
-	local IGNORE_ANY_PATTERNS = { "@cflint%-ignore", "@cflint%-disable", "cflint%-ignore" }
-	local FUNCTION_PATTERNS = {
-		"function%s+[%w_]+%s*%(",
-		"function%s+[%w_]+%s*[%w_]+%s*%(",
-		"function%s*%(",
-	}
-
-	local function match_first(str, patterns)
-		for _, p in ipairs(patterns) do
-			local m = str:match(p)
-			if m then
-				return m
-			end
-		end
-	end
-
-	local function matches_any(str, patterns)
-		for _, p in ipairs(patterns) do
-			if str:find(p) then
-				return true
-			end
-		end
-		return false
-	end
-
-	local function count(str, pattern)
-		return select(2, str:gsub(pattern, ""))
-	end
 
 	--- Baca rule yang di-exclude dari .cflintrc terdekat (jika ada).
 	local function get_excluded_rules(bufnr)
@@ -248,19 +228,31 @@ do
 		local rules, start, depth, in_function = {}, nil, 0, false
 
 		for idx, line in ipairs(lines) do
-			local rule = match_first(line, IGNORE_RULE_PATTERNS)
-			if rule then
-				rules[#rules + 1] = rule
-			elseif matches_any(line, IGNORE_ANY_PATTERNS) then
-				rules[#rules + 1] = "ALL"
+			local rule_ignored = line:match("@cflint%-ignore%s+([%w_]+)")
+				or line:match("@cflint%-disable%s+([%w_]+)")
+				or line:match("cflint%-ignore%s+([%w_]+)")
+
+			if rule_ignored then
+				table.insert(rules, rule_ignored)
+			elseif line:find("@cflint%-ignore") or line:find("@cflint%-disable") or line:find("cflint%-ignore") then
+				table.insert(rules, "ALL")
 			end
 
-			if matches_any(line, FUNCTION_PATTERNS) then
-				start, in_function, depth = idx, true, 0
+			if
+				line:find("function%s+[%w_]+%s*%(")
+				or line:find("function%s+[%w_]+%s*[%w_]+%s*%(")
+				or line:find("function%s*%(")
+			then
+				start = idx
+				in_function = true
+				depth = 0
 			end
 
 			if in_function then
-				depth = depth + count(line, "{") - count(line, "}")
+				local _, open_b = line:gsub("{", "")
+				local _, close_b = line:gsub("}", "")
+				depth = depth + open_b - close_b
+
 				if depth <= 0 and line:find("}") then
 					ranges[#ranges + 1] = { start_line = start, end_line = idx, rules = rules }
 					in_function, start, rules = false, nil, {}
@@ -271,7 +263,7 @@ do
 		return ranges
 	end
 
-	local function ignored_in_function(ranges, line_idx, rule_id)
+	local function is_ignored_in_function(ranges, line_idx, rule_id)
 		for _, range in ipairs(ranges) do
 			if line_idx >= range.start_line and line_idx <= range.end_line then
 				for _, r in ipairs(range.rules) do
@@ -284,7 +276,7 @@ do
 		return false
 	end
 
-	--- Cek komentar CFLINT-DISABLE di satu baris untuk rule tertentu.
+	--- Cek komentar CFLINT-DISABLE di baris tertentu.
 	local function has_disable_comment(line_str, rule_id)
 		if not line_str then
 			return false
@@ -296,72 +288,151 @@ do
 		return line_str:find("CFLINT%-DISABLE") ~= nil or line_str:find("cflint%-disable") ~= nil
 	end
 
-	lint.linters.cflint = {
-		cmd = "box",
-		args = {
-			"cflint",
-			function()
-				return "pattern=" .. fn.fnamemodify(api.nvim_buf_get_name(0), ":t")
-			end,
-			"reportLevel=ERROR",
-		},
-		-- Jalankan dari folder tempat file berada
-		stdin = false,
-		stream = "both", -- CommandBox kadang mengirim log ke stderr
-		ignore_exitcode = true,
-		parser = function(output, bufnr)
-			if not output or output == "" then
-				return {}
-			end
+	--- Parser JSON output (dari java -jar CFLint ... -json -stdout)
+	local function parse_cflint_json(output, bufnr)
+		if not output or output == "" then
+			return {}
+		end
 
-			-- Hilangkan ANSI escape codes (warna terminal CommandBox)
-			local clean_output = output:gsub(ANSI_PATTERN, "")
+		local ok, decoded = pcall(vim.json.decode, output)
+		if not ok or not decoded or not decoded.issues then
+			return {}
+		end
 
-			local excludes = get_excluded_rules(bufnr)
-			local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
-			local function_ranges = scan_function_ignores(lines)
-			local diagnostics = {}
+		local config_excludes = get_excluded_rules(bufnr)
+		local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		local function_ranges = scan_function_ignores(lines)
+		local diagnostics = {}
 
-			-- Format: ERROR: MISSING_VAR, Variable ... [1408,10]
-			for line in clean_output:gmatch("[^\r\n]+") do
-				local sev, rule_id, detail_msg, lnum, col = line:match(LINT_LINE)
+		for _, issue in ipairs(decoded.issues) do
+			local rule_id = issue.id or ""
+			local severity_str = issue.severity or "ERROR"
 
-				if sev == "ERROR" and not excludes[rule_id] then
-					local row = tonumber(lnum) or 1
-					local column = tonumber(col) or 1
+			if severity_str == "ERROR" and not config_excludes[rule_id] then
+				for _, location in ipairs(issue.locations or {}) do
+					local line_idx = location.line or 1
+					local current_line = lines[line_idx] or ""
+					local prev_line = lines[line_idx - 1] or ""
 
-					local disabled = has_disable_comment(lines[row], rule_id)
-						or has_disable_comment(lines[row - 1], rule_id)
-						or ignored_in_function(function_ranges, row, rule_id)
+					local disabled = has_disable_comment(current_line, rule_id)
+						or has_disable_comment(prev_line, rule_id)
+						or is_ignored_in_function(function_ranges, line_idx, rule_id)
 
 					if not disabled then
+						local detail_msg = issue.message
+						if not detail_msg or detail_msg == "" or detail_msg == rule_id then
+							if location.message and location.message ~= "" then
+								detail_msg = location.message
+							elseif issue.expression and issue.expression ~= "" then
+								detail_msg =
+									string.format("Variable %s is not declared with a var statement.", issue.expression)
+							else
+								detail_msg = "Variable is not declared with a var statement."
+							end
+						end
+
+						detail_msg = detail_msg:gsub("^%s*(.-)%s*$", "%1")
+						local formatted_message = string.format("%s (%s)", detail_msg, rule_id)
+
 						diagnostics[#diagnostics + 1] = {
-							lnum = row - 1,
-							col = column - 1,
-							end_lnum = row - 1,
-							end_col = column,
+							lnum = line_idx - 1,
+							col = (location.column or 1) - 1,
+							end_lnum = line_idx - 1,
+							end_col = location.column or 1,
 							severity = vim.diagnostic.severity.ERROR,
-							message = string.format("%s (%s)", detail_msg, rule_id),
+							message = formatted_message,
 							source = "cflint",
 						}
 					end
 				end
 			end
+		end
 
-			return diagnostics
-		end,
-	}
+		return diagnostics
+	end
+
+	--- Parser Text output (fallback dari `box cflint`)
+	local function parse_cflint_text(output, bufnr)
+		if not output or output == "" then
+			return {}
+		end
+
+		local clean_output = output:gsub(ANSI_PATTERN, "")
+		local excludes = get_excluded_rules(bufnr)
+		local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		local function_ranges = scan_function_ignores(lines)
+		local diagnostics = {}
+
+		for line in clean_output:gmatch("[^\r\n]+") do
+			local sev, rule_id, detail_msg, lnum, col = line:match(LINT_LINE)
+
+			if sev == "ERROR" and not excludes[rule_id] then
+				local row = tonumber(lnum) or 1
+				local column = tonumber(col) or 1
+
+				local disabled = has_disable_comment(lines[row], rule_id)
+					or has_disable_comment(lines[row - 1], rule_id)
+					or is_ignored_in_function(function_ranges, row, rule_id)
+
+				if not disabled then
+					diagnostics[#diagnostics + 1] = {
+						lnum = row - 1,
+						col = column - 1,
+						end_lnum = row - 1,
+						end_col = column,
+						severity = vim.diagnostic.severity.ERROR,
+						message = string.format("%s (%s)", detail_msg, rule_id),
+						source = "cflint",
+					}
+				end
+			end
+		end
+
+		return diagnostics
+	end
+
+	if use_jar then
+		lint.linters.cflint = {
+			cmd = "java",
+			args = {
+				"-jar",
+				jar_path,
+				"-json",
+				"-stdout",
+				"-file",
+			},
+			stdin = false,
+			stream = "stdout",
+			ignore_exitcode = true,
+			parser = parse_cflint_json,
+		}
+	else
+		lint.linters.cflint = {
+			cmd = "box",
+			args = {
+				"cflint",
+				function()
+					return "pattern=" .. fn.fnamemodify(api.nvim_buf_get_name(0), ":t")
+				end,
+				"reportLevel=ERROR",
+			},
+			stdin = false,
+			stream = "both",
+			ignore_exitcode = true,
+			parser = parse_cflint_text,
+		}
+	end
 
 	lint.linters_by_ft = lint.linters_by_ft or {}
 	lint.linters_by_ft.cfml = { "cflint" }
 	lint.linters_by_ft.cfc = { "cflint" }
+	lint.linters_by_ft.cfm = { "cflint" }
 
 	api.nvim_create_autocmd({ "BufWritePost", "BufEnter", "InsertLeave" }, {
 		group = api.nvim_create_augroup("CfmlLint", { clear = true }),
-		callback = function(args)
-			local bufname = api.nvim_buf_get_name(args.buf)
-			local dir = bufname ~= "" and fn.fnamemodify(bufname, ":h") or nil
-			lint.try_lint(nil, { cwd = dir })
+		pattern = { "*.cfml", "*.cfm", "*.cfc", "*.sfc" },
+		callback = function()
+			lint.try_lint("cflint")
 		end,
 	})
 end
