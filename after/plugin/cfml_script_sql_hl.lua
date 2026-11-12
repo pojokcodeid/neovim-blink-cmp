@@ -1,6 +1,7 @@
 -- ~/.config/nvim/after/plugin/cfml_script_sql_hl.lua
 -- Pewarnaan SQL di dalam string CFScript, mis.
 --   qTextQuery = "UPDATE tabel SET kolom = :param ...";
+--   LOCAL.sqlq &= "WHERE EC.company_id = :company_id";   (potongan SQL)
 -- Memakai extmark, jadi tidak terpengaruh node ERROR dari parser SQL.
 -- Group warna CfmlSql* sama dengan cfml_query_hl.lua.
 
@@ -40,11 +41,53 @@ local TABLE_KW = { from = true, join = true, into = true, update = true, table =
 
 -- string dianggap SQL kalau diawali salah satu kata ini + spasi
 local SQL_START = { "select", "insert", "update", "delete", "with" }
+
+-- potongan SQL (fragment) yang biasanya di-append ke query utama,
+-- mis. "AND x = :x", "WHERE a.id = :id", "ORDER BY ...".
+-- Perlu "sinyal SQL" tambahan supaya string biasa seperti "and then" tidak ikut terwarnai.
+local FRAG_START = {
+	"and",
+	"or",
+	"where",
+	"on",
+	"join",
+	"left",
+	"right",
+	"inner",
+	"outer",
+	"full",
+	"cross",
+	"group",
+	"order",
+	"having",
+	"set",
+	"from",
+	"union",
+	"values",
+	"limit",
+	"offset",
+}
+
 local function looks_like_sql(s)
-	local l = s:lower()
+	local first = s:match("^%s*(%a+)%s")
+	if not first then
+		return false
+	end
+	first = first:lower()
+
 	for _, k in ipairs(SQL_START) do
-		if l:match("^%s*" .. k .. "%s") then
+		if first == k then
 			return true
+		end
+	end
+
+	for _, k in ipairs(FRAG_START) do
+		if first == k then
+			-- sinyal: :param, alias.kolom, operator pembanding, atau "by"
+			return s:find(":[%a_]") ~= nil
+				or s:find("[%a_][%w_]*%.[%a_][%w_]*") ~= nil
+				or s:find("[=<>]") ~= nil
+				or s:find("%f[%a]by%f[%A]") ~= nil -- group by / order by
 		end
 	end
 	return false
