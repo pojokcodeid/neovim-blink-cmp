@@ -634,3 +634,15 @@ local function cflint_check()
 end
 
 api.nvim_create_user_command("CflintCheck", cflint_check, { desc = "Jalankan box cflint untuk file aktif" })
+
+--- reload http file ketika di edit
+---
+vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
+	group = general,
+	pattern = "*.http",
+	callback = function(ev)
+		pcall(function()
+			vim.treesitter.get_parser(ev.buf, "http"):parse(true)
+		end)
+	end,
+})

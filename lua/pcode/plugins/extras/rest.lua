@@ -24,7 +24,9 @@ return {
 			response = {
 				hooks = {
 					decode_url = true,
-					format = true, -- auto-format body (JSON via jq, dll.)
+					-- Dimatikan: format JSON sudah ditangani watcher jq di bawah,
+					-- supaya dua formatter tidak mengubah buffer hasil yang sama.
+					format = false,
 				},
 			},
 			env = {
@@ -54,6 +56,19 @@ return {
 		}
 	end,
 	config = function()
+		local group = vim.api.nvim_create_augroup("RestNvimCustom", { clear = true })
+
+		-- Jaga tree-sitter tree buffer .http tetap segar setelah edit
+		vim.api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
+			group = group,
+			pattern = "*.http",
+			callback = function(ev)
+				pcall(function()
+					vim.treesitter.get_parser(ev.buf, "http"):parse(true)
+				end)
+			end,
+		})
+
 		local function format_json_body(buf)
 			if not vim.api.nvim_buf_is_valid(buf) or vim.fn.executable("jq") == 0 then
 				return
@@ -79,9 +94,11 @@ return {
 			vim.bo[buf].modifiable = true
 			vim.api.nvim_buf_set_lines(buf, s, e - 1, false, out)
 			vim.bo[buf].modifiable = was_modifiable
+			vim.bo[buf].modified = false
 		end
 
 		vim.api.nvim_create_autocmd("FileType", {
+			group = group,
 			pattern = "rest_nvim_result",
 			callback = function(ev)
 				local buf = ev.buf
@@ -125,16 +142,37 @@ return {
 		})
 
 		-- Ubah jendela hasil rest.nvim menjadi floating window (seperti :Mason)
+		local function normal_win_count()
+			local n = 0
+			for _, w in ipairs(vim.api.nvim_list_wins()) do
+				if vim.api.nvim_win_get_config(w).relative == "" then
+					n = n + 1
+				end
+			end
+			return n
+		end
+
 		local function float_result(win)
 			if not vim.api.nvim_win_is_valid(win) then
 				return
 			end
+			-- hanya sekali per window (mencegah loop BufWinEnter)
+			if vim.w[win].rest_floated then
+				return
+			end
 			if vim.api.nvim_win_get_config(win).relative ~= "" then
+				vim.w[win].rest_floated = true
 				return -- sudah floating
 			end
+			-- Neovim tidak boleh mengubah window terakhir menjadi float:
+			-- biarkan tampil sebagai window biasa.
+			if normal_win_count() <= 1 then
+				return
+			end
+			vim.w[win].rest_floated = true
 			local width = math.floor(vim.o.columns * 0.85)
 			local height = math.floor(vim.o.lines * 0.8)
-			vim.api.nvim_win_set_config(win, {
+			local ok = pcall(vim.api.nvim_win_set_config, win, {
 				relative = "editor",
 				width = width,
 				height = height,
@@ -145,15 +183,21 @@ return {
 				title_pos = "center",
 				zindex = 50,
 			})
-			vim.api.nvim_set_current_win(win)
+			if ok and vim.api.nvim_win_is_valid(win) then
+				vim.api.nvim_set_current_win(win)
+			end
 		end
 
 		vim.api.nvim_create_autocmd("BufWinEnter", {
+			group = group,
 			callback = function(ev)
 				if vim.bo[ev.buf].filetype ~= "rest_nvim_result" then
 					return
 				end
 				vim.schedule(function()
+					if not vim.api.nvim_buf_is_valid(ev.buf) then
+						return
+					end
 					for _, win in ipairs(vim.fn.win_findbuf(ev.buf)) do
 						float_result(win)
 					end
@@ -161,28 +205,36 @@ return {
 			end,
 		})
 
-		-- format number disable
-		local my_buffer_opts = vim.api.nvim_create_augroup("MyBufferOpts", { clear = true })
-
+		-- Opsi tampilan: sembunyikan line number & gutter di buffer http / hasil
 		vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter" }, {
-			group = my_buffer_opts,
+			group = group,
 			pattern = { "rest_nvim_result", "http" },
 			callback = function(args)
 				local buf = args.buf
+				local ft = vim.bo[buf].filetype
 
-				-- Pastikan mengecek filetype buffer saat ini
-				if vim.tbl_contains({ "rest_nvim_result", "http" }, vim.bo[buf].filetype) then
-					-- 1. Sembunyikan line numbers & gutter/column
-					vim.wo.number = false
-					vim.wo.relativenumber = false
-					vim.wo.signcolumn = "no"
-					vim.wo.foldcolumn = "0"
+				if ft ~= "rest_nvim_result" and ft ~= "http" then
+					return
+				end
 
-					-- 2. Tambahkan keymap 'q' untuk keluar (:q!) khusus di buffer ini
-					vim.keymap.set("n", "q", "<cmd>q!<CR>", {
+				vim.wo.number = false
+				vim.wo.relativenumber = false
+				vim.wo.signcolumn = "no"
+				vim.wo.foldcolumn = "0"
+
+				-- 'q' hanya di buffer hasil, memakai :close (bukan :q!) supaya
+				-- tidak membuang perubahan file .http dan state window tetap bersih.
+				if ft == "rest_nvim_result" then
+					vim.keymap.set("n", "q", function()
+						local win = vim.api.nvim_get_current_win()
+						if normal_win_count() > 1 or vim.api.nvim_win_get_config(win).relative ~= "" then
+							pcall(vim.api.nvim_win_close, win, true)
+						else
+							vim.cmd("quit")
+						end
+					end, {
 						buffer = buf,
 						silent = true,
-						noremap = true,
 						desc = "Close rest_nvim result window",
 					})
 				end
@@ -191,7 +243,16 @@ return {
 	end,
 	keys = {
 		{ "<leader>R", "", desc = "Http Request" },
-		{ "<leader>Rr", "<cmd>Rest run<cr>", desc = "Run HTTP request" },
+		{
+			"<leader>Rr",
+			function()
+				pcall(function()
+					vim.treesitter.get_parser(0, "http"):parse(true)
+				end)
+				vim.cmd("Rest run")
+			end,
+			desc = "Run HTTP request",
+		},
 		{ "<leader>Rl", "<cmd>Rest run last<cr>", desc = "Re-run last request" },
 		{ "<leader>Re", "<cmd>Rest env select<cr>", desc = "Select .env file" },
 	},
