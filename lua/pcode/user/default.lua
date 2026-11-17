@@ -27,8 +27,6 @@ pcode.extras = {
 	blinkripgrep = true,
 	bufferline = true,
 	cheatsheet = false,
-	codeium = false,
-	codeiumnvim = false,
 	coderunner = true,
 	colorizer = false,
 	colorfullblink = true,
@@ -44,7 +42,7 @@ pcode.extras = {
 	lspprogress = false,
 	minianimate = true,
 	navic = false,
-	neocodeium = true,
+	copilot = true,
 	neoscroll = false,
 	nonels = true,
 	npmrunner = false,
@@ -94,11 +92,11 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-  onedarkpro = "onedark_dark"
+	onedarkpro = "onedark_dark",
 }
 -- activate config transparent_bg
-pcode.transparent=false
+pcode.transparent = false
 pcode.localcode = false
 pcode.snippets_path = vim.fn.stdpath("config") .. "/mysnippets"
 pcode.use_nvimtree = true
-pcode.nvimtree_float=true
+pcode.nvimtree_float = true
