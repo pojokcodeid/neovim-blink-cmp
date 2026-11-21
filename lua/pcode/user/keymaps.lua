@@ -234,7 +234,7 @@ keymap("v", "<C-h>", replace_selected_text, {
 -- ============================================================================
 -- 8. Background Runner (BgRun) Shortcuts
 -- ============================================================================
-keymap("n", "<leader>j", "", { desc = "Run" })
+keymap("n", "<leader>j", "", { desc = "Run BG" })
 keymap("n", "<leader>jr", "<cmd>BgRun<cr>", { desc = "BG run" })
 keymap("n", "<leader>jl", "<cmd>BgList<cr>", { desc = "BG status/history" })
 keymap("n", "<leader>jg", "<cmd>BgLog<cr>", { desc = "BG log" })

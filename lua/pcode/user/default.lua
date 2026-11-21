@@ -29,7 +29,7 @@ pcode.extras = {
 	cheatsheet = false,
 	coderunner = true,
 	colorizer = false,
-	colorfullblink = true,
+	colorfullblink = false,
 	dap = false,
 	deviconcolor = false,
 	dropbar = true,
@@ -92,7 +92,7 @@ pcode.extras = {
 -- github = "github_dark_dimmed",
 
 pcode.themes = {
-	onedarkpro = "onedark_dark",
+  onedarkpro = "onedark_dark"
 }
 -- activate config transparent_bg
 pcode.transparent = false

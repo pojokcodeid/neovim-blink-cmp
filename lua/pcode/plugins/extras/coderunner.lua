@@ -58,7 +58,7 @@ return {
 		require("code_runner.hooks.notify").info = function() end
 	end,
 	keys = {
-		{ "<leader>r", "", desc = "  Run", mode = "n" },
+		{ "<leader>r", "", desc = "Run", mode = "n" },
 		{ "<leader>rr", "<cmd>RunCode<CR>", desc = "Run Code", mode = "n" },
 		{ "<leader>rf", "<cmd>RunFile<CR>", desc = "Run File", mode = "n" },
 		{ "<leader>rp", "<cmd>RunProject<CR>", desc = "Run Project", mode = "n" },
