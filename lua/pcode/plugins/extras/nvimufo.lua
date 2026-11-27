@@ -19,6 +19,7 @@ M.config = function()
 	local ignored_ft = {
 		NvimTree = true,
 		["neo-tree"] = true,
+		["neo-tree-popup"] = true,
 		help = true,
 		dashboard = true,
 		lazy = true,
@@ -27,7 +28,31 @@ M.config = function()
 		qf = true,
 	}
 
+	local function is_ignored(buf)
+		if not (buf and vim.api.nvim_buf_is_valid(buf)) then
+			return false
+		end
+		return ignored_ft[vim.bo[buf].filetype] == true
+	end
+
+	-- Matikan statuscolumn/foldcolumn/nomor baris di satu window
+	local function disable_gutter(win)
+		if not (win and vim.api.nvim_win_is_valid(win)) then
+			return
+		end
+		local opts = { win = win, scope = "local" }
+		vim.api.nvim_set_option_value("statuscolumn", "", opts)
+		vim.api.nvim_set_option_value("foldcolumn", "0", opts)
+		vim.api.nvim_set_option_value("number", false, opts)
+		vim.api.nvim_set_option_value("relativenumber", false, opts)
+	end
+
 	local function fold_segment(args)
+		-- window ignored (neo-tree, dll.): jangan render apa pun
+		if is_ignored(vim.api.nvim_win_get_buf(args.win)) then
+			return ""
+		end
+
 		local fc = vim.wo[args.win].foldcolumn
 		-- window tanpa foldcolumn: jangan return apa-apa supaya lebar tidak berubah
 		if fc == "0" then
@@ -65,9 +90,8 @@ M.config = function()
 
 		if pos.winid ~= 0 and pos.line > 0 then
 			local buf = vim.api.nvim_win_get_buf(pos.winid)
-			local ft = vim.bo[buf].filetype
 			local bt = vim.bo[buf].buftype
-			local ignored = bt ~= "" or ignored_ft[ft]
+			local ignored = bt ~= "" or is_ignored(buf)
 			local info = vim.fn.getwininfo(pos.winid)[1]
 			if not ignored and info and pos.wincol <= info.textoff + HOVER_MARGIN then
 				new_win = pos.winid
@@ -100,6 +124,30 @@ M.config = function()
 	vim.o.foldlevelstart = 99
 	vim.o.foldenable = true
 	vim.o.fillchars = [[eob: ,fold: ,foldopen:,foldsep: ,foldclose:]]
+
+	-- Paksa matikan gutter di window ignored (neo-tree dll.).
+	-- Dibutuhkan karena statuscolumn/foldcolumn global diwariskan ke window baru,
+	-- sedangkan filetype window baru sering belum terset saat ft_ignore dicek.
+	local gutter_group = vim.api.nvim_create_augroup("UfoIgnoredGutter", { clear = true })
+	vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter", "WinEnter", "WinNew" }, {
+		group = gutter_group,
+		callback = function()
+			-- schedule: filetype/opsi window baru final setelah event ini
+			vim.schedule(function()
+				local win = vim.api.nvim_get_current_win()
+				if vim.api.nvim_win_is_valid(win) and is_ignored(vim.api.nvim_win_get_buf(win)) then
+					disable_gutter(win)
+				end
+			end)
+		end,
+	})
+
+	-- Bersihkan window ignored yang sudah terbuka saat config ter-load
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		if is_ignored(vim.api.nvim_win_get_buf(win)) then
+			disable_gutter(win)
+		end
+	end
 
 	-- Fold text handler
 	local handler = function(virtText, lnum, endLnum, width, truncate)
@@ -140,6 +188,10 @@ M.config = function()
 		fold_virt_text_handler = handler,
 		close_fold_kinds = {},
 		provider_selector = function(bufnr, filetype, buftype)
+			-- nonaktifkan ufo sepenuhnya di filetype ignored (neo-tree, dll.)
+			if ignored_ft[filetype] then
+				return ""
+			end
 			return ftMap[filetype]
 		end,
 		preview = {

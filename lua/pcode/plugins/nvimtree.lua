@@ -284,6 +284,8 @@ else
 					{ source = "buffers", display_name = "  Buffers " },
 					{ source = "git_status", display_name = "  Git " },
 				},
+				padding = { left = 2, right = 2 }, -- jarak kiri/kanan seluruh bar
+				separator = { left = " ", right = " " }, -- jarak antar tab
 			},
 
 			window = {
@@ -366,12 +368,43 @@ else
 				end,
 			})
 
-			-- vim.cmd [[
-			--   highlight NeoTreeTabActive   guifg=#ffffff guibg=#5f87af
-			--   highlight NeoTreeTabInactive guifg=#aaaaaa guibg=NONE
-			--   highlight NeoTreeTabSeparatorActive guifg=#5f87af guibg=NONE
-			--   highlight NeoTreeTabSeparatorInactive guifg=#3a3a3a guibg=NONE
-			-- ]]
+			local function neotree_colors()
+				local hl = vim.api.nvim_set_hl
+
+				-- 1. Garis indent
+				hl(0, "NeoTreeIndentMarker", { fg = "#3b4261" })
+				hl(0, "NeoTreeExpander", { fg = "#3b4261" })
+
+				-- 2. Tab source selector (Files / Buffers / Git)
+				hl(0, "NeoTreeTabActive", { fg = "#c0caf5", bg = "#1f2335", bold = true })
+				hl(0, "NeoTreeTabInactive", { fg = "#565f89", bg = "#16191D" })
+				hl(0, "NeoTreeTabSeparatorActive", { fg = "#1f2335", bg = "#1f2335" })
+				hl(0, "NeoTreeTabSeparatorInactive", { fg = "#16191D", bg = "#16191D" })
+
+				-- 3. Popup input / float
+				hl(0, "NeoTreeFloatNormal", { bg = "#16191D" })
+				hl(0, "NeoTreeFloatBorder", { fg = "#7aa2f7", bg = "#16191D" })
+				hl(0, "NeoTreeFloatTitle", { fg = "#16161e", bg = "#7aa2f7", bold = true })
+				hl(0, "NeoTreeTitleBar", { fg = "#16161e", bg = "#7aa2f7", bold = true })
+
+				-- Icon folder (yang ungu di screenshotmu) dan nama foldernya
+				hl(0, "NeoTreeDirectoryIcon", { fg = "#bb9af7" })
+				hl(0, "NeoTreeDirectoryName", { fg = "#7aa2f7" })
+
+				-- Icon file (hanya dipakai kalau tidak ada nvim-web-devicons)
+				hl(0, "NeoTreeFileIcon", { fg = "#7dcfff" })
+				hl(0, "NeoTreeFileName", { fg = "#c0caf5" })
+
+				-- Lain-lain yang masih terkait icon
+				hl(0, "NeoTreeRootName", { fg = "#e0af68", bold = true })
+				hl(0, "NeoTreeSymbolicLinkTarget", { fg = "#bb9af7" })
+			end
+
+			neotree_colors()
+			vim.api.nvim_create_autocmd("ColorScheme", {
+				group = vim.api.nvim_create_augroup("NeoTreeColors", { clear = true }),
+				callback = neotree_colors,
+			})
 		end,
 	}
 end
