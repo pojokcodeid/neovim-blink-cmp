@@ -74,6 +74,7 @@ return {
 				Whitespace = { fg = "#3E4450" }, -- Screen-column at the cursor, when 'cursorcolumn' is set.
 				-- overide nvimtree folder icon fill color
 				NvimTreeFolderIcon = { fg = "${gray}" },
+				NeoTreeDirectoryIcon = { fg = "${gray}" },
 				-- overide nvimtree text fill color folder opened
 				NvimTreeOpenedFolderName = { fg = "${blue}" },
 				-- overide nvimtree text fill color root folder

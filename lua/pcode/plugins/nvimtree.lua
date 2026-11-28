@@ -294,10 +294,19 @@ else
 			},
 
 			default_component_configs = {
+				indent = {
+					indent_size = 2,
+					padding = 2,
+					with_markers = false, -- hilangkan garis indent
+					with_expanders = true, -- panah ▸ ▾
+					expander_collapsed = "",
+					expander_expanded = "",
+					expander_highlight = "NeoTreeExpander",
+				},
 				icon = {
-					folder_closed = "󰉋",
-					folder_open = "󰝰",
-					folder_empty = "󰉖",
+					folder_closed = "",
+					folder_open = "",
+					folder_empty = "",
 				},
 				git_status = {
 					symbols = {
@@ -359,6 +368,31 @@ else
 		config = function(_, opts)
 			require("neo-tree").setup(opts)
 
+			local ok, inputs = pcall(require, "neo-tree.ui.inputs")
+			if ok and not inputs._patched then
+				local orig_input = inputs.input
+
+				-- pola (plain text) -> teks pengganti
+				local replacements = {
+					{ "Enter name for new file or directory", " 󰝒 File baru (akhiri / untuk folder) " },
+					{ "Enter new name for", " 󰑕 Nama baru: " },
+				}
+
+				inputs.input = function(message, default_value, callback, options, completion)
+					if type(message) == "string" then
+						for _, r in ipairs(replacements) do
+							if message:find(r[1], 1, true) then
+								message = r[2]
+								break
+							end
+						end
+					end
+					return orig_input(message, default_value, callback, options, completion)
+				end
+
+				inputs._patched = true
+			end
+
 			vim.api.nvim_create_autocmd("TermClose", {
 				pattern = "*lazygit*",
 				callback = function()
@@ -384,11 +418,11 @@ else
 				-- 3. Popup input / float
 				hl(0, "NeoTreeFloatNormal", { bg = "#16191D" })
 				hl(0, "NeoTreeFloatBorder", { fg = "#7aa2f7", bg = "#16191D" })
-				hl(0, "NeoTreeFloatTitle", { fg = "#16161e", bg = "#7aa2f7", bold = true })
-				hl(0, "NeoTreeTitleBar", { fg = "#16161e", bg = "#7aa2f7", bold = true })
+				hl(0, "NeoTreeFloatTitle", { fg = "#7aa2f7", bg = "#16191D", bold = true })
+				hl(0, "NeoTreeTitleBar", { fg = "#7aa2f7", bg = "#16191D", bold = true })
 
 				-- Icon folder (yang ungu di screenshotmu) dan nama foldernya
-				hl(0, "NeoTreeDirectoryIcon", { fg = "#bb9af7" })
+				-- hl(0, "NeoTreeDirectoryIcon", { fg = "#bb9af7" })
 				hl(0, "NeoTreeDirectoryName", { fg = "#7aa2f7" })
 
 				-- Icon file (hanya dipakai kalau tidak ada nvim-web-devicons)
