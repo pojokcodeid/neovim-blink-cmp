@@ -374,8 +374,8 @@ else
 
 				-- pola (plain text) -> teks pengganti
 				local replacements = {
-					{ "Enter name for new file or directory", " 󰝒 File baru (akhiri / untuk folder) " },
-					{ "Enter new name for", " 󰑕 Nama baru: " },
+					{ "Enter name for new file or directory", " 󰝒 New (with / for folder) " },
+					{ "Enter new name for", " 󰑕 Rename: " },
 				}
 
 				inputs.input = function(message, default_value, callback, options, completion)
